@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+.env
+.venv
+venv/
+env/
+.python-version
+
+# Node / Frontend
+HeliXpert/node_modules/
+HeliXpert/dist/
+HeliXpert/.vite/
+node_modules/
+dist/
+.DS_Store
+
+# Database (large binary — excluded from repo)
+data/database/*.db
+data/database/*.db-shm
+data/database/*.db-wal
+data/database/*.db-journal
+
+# Raw data files (large — excluded from repo)
+data/raw/cmapss/*.h5
+data/raw/phm_helicopter/*.csv
+data/raw/phm_helicopter/*.xlsx
+data/raw/phm_helicopter/~$*
+
+# Processed / vectorstore
+data/processed/
+data/vectorstore/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env files
+.env
+.env.local
+.env.production
+
+# Lock files (optional — keep package-lock but ignore others)
+# HeliXpert/package-lock.json

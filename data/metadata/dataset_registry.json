@@ -1,0 +1,26 @@
+{
+    "last_updated": "2026-09-16T08:57:25.986645",
+    "datasets": {
+        "helicopters": {
+            "records": 10,
+            "columns": 9
+        },
+        "components": {
+            "records": 8,
+            "columns": 5
+        },
+        "maintenance": {
+            "records": 6169,
+            "columns": 13
+        },
+        "phm_engine": {
+            "records": 742625,
+            "columns": 10
+        },
+        "cmapss": {
+            "records": 0,
+            "columns": 0,
+            "files": 9
+        }
+    }
+}
