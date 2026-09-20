@@ -115,10 +115,10 @@ class APIService {
   }
 
   // AI Analyst
-  async queryAI(question) {
+  async queryAI(question, mode = 'nlp', language = 'en') {
     return this.request('/api/analyst/query', {
       method: 'POST',
-      body: JSON.stringify({ question })
+      body: JSON.stringify({ question, mode, language })
     });
   }
 

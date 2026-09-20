@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { aiEngine } from '../services/aiEngine';
-import { 
-  Bot, 
-  User, 
-  Send, 
+import { startListening, speak, stopSpeaking, isSupported } from '../services/voiceService';
+import { t } from '../utils/translations';
+import {
+  Bot,
+  User,
+  Send,
   Terminal,
   BarChart2,
   Table as TableIcon,
@@ -12,18 +14,24 @@ import {
   Check,
   Sparkles,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Globe,
+  Cpu
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
+import {
+  BarChart,
+  Bar,
   LineChart,
   Line,
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell 
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
 } from 'recharts';
 
 // Render markdown-style bold (**text**) inline
@@ -82,7 +90,7 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
     {
       id: 1,
       sender: 'ai',
-      text: 'Hello! I am **HeliXpert AI**, your offline helicopter intelligence assistant.\n\nI can query the local SQLite database for helicopter specs, engine parameters, fault logs, and maintenance records — all fully offline.\n\nAsk me anything or pick a sample query below!',
+      text: 'Hello! I am **HeliXpert AI**, your intelligent helicopter assistant.\n\nI support **NLP and RAG modes** with **multilingual queries** and **voice input**.\n\nSwitch modes above or ask me anything!',
       timestamp: new Date().toLocaleTimeString(),
     }
   ]);
@@ -90,6 +98,14 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Feature states
+  const [mode, setMode] = useState('nlp'); // 'nlp' or 'rag'
+  const [language, setLanguage] = useState('en'); // 'en', 'hi', 'kn'
+  const [isListening, setIsListening] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted
+  const [ollamaStatus, setOllamaStatus] = useState({ available: false, model: null });
+  const recognitionRef = useRef(null);
 
   const sampleQueries = [
     "How many helicopters are there?",
@@ -100,6 +116,23 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
     "What is the average torque?",
     "Show MGT trend over time",
   ];
+
+  // Check Ollama status on mount
+  useEffect(() => {
+    checkOllamaStatus();
+    const interval = setInterval(checkOllamaStatus, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const checkOllamaStatus = async () => {
+    try {
+      const status = await aiEngine.getOllamaStatus();
+      setOllamaStatus(status);
+    } catch (error) {
+      console.error('Failed to check Ollama status:', error);
+      setOllamaStatus({ available: false, model: null });
+    }
+  };
 
   useEffect(() => {
     if (initialPrompt) {
@@ -127,34 +160,77 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
     setIsLoading(true);
 
     try {
-      // aiEngine.processQuery returns:
-      // { success, answer, data, visualization:{type,data}, sql, intent, processingTime }
-      const response = await aiEngine.processQuery(q);
+      // Pass mode and language to the AI engine
+      const response = await aiEngine.processQuery(q, mode, language);
 
+      const responseMode = response.mode || mode;
+      const isRagResponse = responseMode === 'rag';
       const aiMsg = {
         id: Date.now() + 1,
         sender: 'ai',
         text: response.answer || (response.success ? 'Query processed.' : 'Unable to process query.'),
-        sql: response.sql || null,
+        mode: responseMode,
+        // NLP is conversational: do not expose raw results, charts, or SQL.
+        // RAG intentionally exposes the retrieved dataset evidence.
+        sql: isRagResponse ? response.sql || null : null,
         intent: response.intent || null,
-        chartType: response.visualization?.type || null,
-        chartData: response.visualization?.data || null,
-        tableData: response.data || null,
+        chartType: isRagResponse ? response.visualization?.type || null : null,
+        chartData: isRagResponse ? response.visualization?.data || null : null,
+        tableData: isRagResponse ? response.data || null : null,
         success: response.success,
         timestamp: new Date().toLocaleTimeString(),
       };
       setMessages(prev => [...prev, aiMsg]);
+
+      // Speak response if NOT muted
+      if (!isMuted && response.answer) {
+        speak(response.answer, language);
+      }
     } catch (err) {
+      console.error('Query error:', err);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: 'ai',
-        text: `Error processing your query: ${err.message}`,
+        text: `Error processing your query: ${err.message}\n\nPlease make sure the backend server is running on http://localhost:8000`,
         success: false,
         timestamp: new Date().toLocaleTimeString(),
       }]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVoiceInput = () => {
+    if (isListening) {
+      // Stop listening
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    // Start listening
+    setIsListening(true);
+    recognitionRef.current = startListening(
+      language,
+      (transcript) => {
+        setInputQuery(transcript);
+        setIsListening(false);
+      },
+      (error) => {
+        console.error('Voice recognition error:', error);
+        setIsListening(false);
+      }
+    );
+  };
+
+  const toggleMute = () => {
+    if (!isMuted) {
+      // If unmuting (currently speaking), stop any ongoing speech
+      stopSpeaking();
+    }
+    setIsMuted(!isMuted);
   };
 
   const handleCopy = (text, id) => {
@@ -172,33 +248,122 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
     return { xKey, valueKey };
   };
 
+  const voiceSupport = isSupported();
+
   return (
     <div className="flex flex-col h-[calc(100vh-7rem)] card-premium overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-border bg-surface-variant/60 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-primary-500/10 border border-primary-500/30 flex items-center justify-center">
-            <Bot className="w-5 h-5 text-primary-500" />
+      <div className="p-4 border-b border-border bg-surface-variant/60">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-primary-500/10 border border-primary-500/30 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-primary-500" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm font-mono text-foreground flex items-center gap-2">
+                HeliXpert AI Analyst
+                <span className="px-2 py-0.5 rounded bg-primary-500/10 text-primary-500 text-[10px] border border-primary-500/20">
+                  {mode.toUpperCase()}
+                </span>
+              </h3>
+              <p className="text-xs text-muted font-mono">
+                {ollamaStatus.available ? `Ollama: ${ollamaStatus.model}` : 'Rule-Based Engine'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-sm font-mono text-foreground flex items-center gap-2">
-              HeliXpert AI Analyst
-              <span className="px-2 py-0.5 rounded bg-primary-500/10 text-primary-500 text-[10px] border border-primary-500/20">
-                OFFLINE SQL ENGINE
-              </span>
-            </h3>
-            <p className="text-xs text-muted font-mono">
-              Intent Classifier · Schema Mapper · Local SQLite · Read-Only
-            </p>
+          <button
+            onClick={() => setMessages([messages[0]])}
+            className="btn-secondary flex items-center gap-1.5 text-xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Reset
+          </button>
+        </div>
+
+        {/* Controls Row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-border">
+            <Cpu className="w-3.5 h-3.5 text-muted" />
+            <button
+              onClick={() => setMode('nlp')}
+              className={`px-2 py-1 rounded text-xs font-mono transition ${
+                mode === 'nlp'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-muted hover:text-foreground'
+              }`}
+            >
+              NLP
+            </button>
+            <button
+              onClick={() => setMode('rag')}
+              className={`px-2 py-1 rounded text-xs font-mono transition ${
+                mode === 'rag'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-muted hover:text-foreground'
+              }`}
+            >
+              RAG
+            </button>
+          </div>
+
+          {/* Language Selector */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-border">
+            <Globe className="w-3.5 h-3.5 text-muted" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-transparent text-xs font-mono text-foreground border-none outline-none cursor-pointer"
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+              <option value="kn">ಕನ್ನಡ</option>
+            </select>
+          </div>
+
+          {/* Voice Input */}
+          {voiceSupport.recognition && (
+            <button
+              onClick={handleVoiceInput}
+              disabled={isLoading}
+              title={isListening ? "Stop listening" : "Start voice input"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition ${
+                isListening
+                  ? 'bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse'
+                  : 'bg-surface border border-border text-muted hover:text-foreground'
+              }`}
+            >
+              {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+              {isListening ? t('listening', language) : 'Voice'}
+            </button>
+          )}
+
+          {/* Mute/Unmute */}
+          {voiceSupport.synthesis && (
+            <button
+              onClick={toggleMute}
+              title={isMuted ? "Unmute AI responses" : "Mute AI responses"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition ${
+                !isMuted
+                  ? 'bg-primary-500/10 text-primary-500 border border-primary-500/30'
+                  : 'bg-surface border border-border text-muted hover:text-foreground'
+              }`}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
+          )}
+
+          {/* Ollama Status */}
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono ${
+            ollamaStatus.available
+              ? 'bg-green-500/10 text-green-500 border border-green-500/30'
+              : 'bg-orange-500/10 text-orange-500 border border-orange-500/30'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${ollamaStatus.available ? 'bg-green-500' : 'bg-orange-500'}`} />
+            {ollamaStatus.available ? 'Ollama' : 'Offline'}
           </div>
         </div>
-        <button
-          onClick={() => setMessages([messages[0]])}
-          className="btn-secondary flex items-center gap-1.5 text-xs"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Reset
-        </button>
       </div>
 
       {/* Messages */}
@@ -277,7 +442,7 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
               })()}
 
               {/* Table */}
-              {(msg.chartType === 'table' || msg.tableData) && (
+              {msg.mode === 'rag' && (msg.chartType === 'table' || msg.tableData) && (
                 <DataTable data={msg.tableData || msg.chartData} />
               )}
 
@@ -300,8 +465,8 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
                       onClick={() => handleCopy(msg.sql, msg.id)}
                       className="shrink-0 text-muted hover:text-foreground transition"
                     >
-                      {copiedId === msg.id 
-                        ? <Check className="w-3.5 h-3.5 text-success-light dark:text-success-dark" /> 
+                      {copiedId === msg.id
+                        ? <Check className="w-3.5 h-3.5 text-success-light dark:text-success-dark" />
                         : <Copy className="w-3.5 h-3.5" />
                       }
                     </button>
@@ -323,7 +488,7 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
             <div className="w-8 h-8 rounded-lg bg-primary-500/15 border border-primary-500/30 flex items-center justify-center">
               <RefreshCw className="w-4 h-4 text-primary-500 animate-spin" />
             </div>
-            <span>Querying database...</span>
+            <span>{t('thinking', language)}</span>
           </div>
         )}
 
@@ -355,7 +520,7 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
             type="text"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
-            placeholder='Ask HeliXpert AI (e.g. "What is the average MGT?")...'
+            placeholder={t('placeholder', language)}
             className="flex-1 px-4 py-3 rounded-xl bg-surface border border-border text-foreground placeholder-muted text-sm font-sans focus:outline-none focus:border-primary-500"
           />
           <button

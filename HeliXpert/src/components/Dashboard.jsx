@@ -10,7 +10,6 @@ import {
   Bot, 
   ArrowRight, 
   Wrench,
-  TrendingUp,
   Database
 } from 'lucide-react';
 import { 
@@ -98,9 +97,9 @@ export default function Dashboard({ setActiveTab, onSelectQuickPrompt, onSelectH
       icon: Database
     },
     { 
-      title: "CMAPSS Prognostics", 
-      prompt: "Show me the NASA C-MAPSS turbofan datasets", 
-      icon: TrendingUp
+      title: "Helicopter Fleet", 
+      prompt: "Show all helicopters in the database", 
+      icon: Plane
     },
   ];
 
@@ -125,7 +124,7 @@ export default function Dashboard({ setActiveTab, onSelectQuickPrompt, onSelectH
               HeliXpert Analytics Dashboard
             </h1>
             <p className="text-sm text-muted mt-1 max-w-2xl">
-              Real-time analysis of helicopter datasets: PHM engine health, maintenance logbooks, component references, and NASA C-MAPSS prognostics.
+              Real-time analysis of helicopter datasets: PHM engine health, maintenance logbooks, and component references — all 100% offline.
             </p>
           </div>
           <button
@@ -191,20 +190,20 @@ export default function Dashboard({ setActiveTab, onSelectQuickPrompt, onSelectH
           </div>
         </div>
 
-        {/* C-MAPSS Data */}
+        {/* Fault Observations */}
         <div className="metric-card">
           <div>
-            <span className="metric-label">NASA C-MAPSS</span>
+            <span className="metric-label">Fault Observations</span>
             <div className="metric-value">
-              {typeof stats.cmapss_observations === 'number' ? 
-                stats.cmapss_observations.toLocaleString() : 
-                stats.cmapss_observations
+              {typeof stats.fault_observations === 'number' ? 
+                stats.fault_observations.toLocaleString() : 
+                stats.fault_observations || 0
               }
             </div>
-            <span className="text-xs text-warning-light dark:text-warning-dark font-mono mt-1 block">Turbofan Prognostics</span>
+            <span className="text-xs text-error-light dark:text-error-dark font-mono mt-1 block">PHM Fault Labels</span>
           </div>
           <div className="metric-icon">
-            <TrendingUp className="w-6 h-6" />
+            <AlertTriangle className="w-6 h-6" />
           </div>
         </div>
       </div>
@@ -334,13 +333,13 @@ export default function Dashboard({ setActiveTab, onSelectQuickPrompt, onSelectH
 
             <div className="p-3 rounded-lg bg-surface-variant/50 border border-border">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-mono text-muted">C-MAPSS</span>
+                <span className="text-xs font-mono text-muted">Fault Records</span>
                 <span className="text-sm font-bold gold-accent font-mono">
-                  {typeof stats.cmapss_observations === 'number' ? (stats.cmapss_observations / 1000).toFixed(0) + 'K' : '0'}
+                  {typeof stats.fault_observations === 'number' ? (stats.fault_observations / 1000).toFixed(0) + 'K' : '0'}
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-surface overflow-hidden">
-                <div className="h-full bg-warning-light dark:bg-warning-dark" style={{ width: stats.cmapss_observations > 0 ? '100%' : '0%' }}></div>
+                <div className="h-full bg-error-light dark:bg-error-dark" style={{ width: stats.fault_observations > 0 ? '100%' : '0%' }}></div>
               </div>
             </div>
           </div>

@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { Plane, Radio, ShieldCheck, ChevronRight } from 'lucide-react';
+import { ContactShadows, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Plane, Radio, ShieldCheck, ChevronRight, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 // 3D Helicopter Model Component
 function Helicopter3DModel() {
@@ -11,117 +12,106 @@ function Helicopter3DModel() {
 
   useFrame((state) => {
     if (helicopterRef.current) {
-      // Smooth bobbing animation
-      helicopterRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
-      // Slow rotation
-      helicopterRef.current.rotation.y += 0.005;
+      // A continuous, complete 360° orbit presents every side of the aircraft.
+      helicopterRef.current.rotation.y = state.clock.elapsedTime * 0.18;
+      helicopterRef.current.position.y = Math.sin(state.clock.elapsedTime * 1.1) * 0.06;
     }
-    
-    // Fast main rotor rotation
     if (rotorRef.current) {
-      rotorRef.current.rotation.y += 0.3;
+      rotorRef.current.rotation.y = state.clock.elapsedTime * 17;
     }
-    
-    // Fast tail rotor rotation
     if (tailRotorRef.current) {
-      tailRotorRef.current.rotation.z += 0.4;
+      tailRotorRef.current.rotation.x = state.clock.elapsedTime * 24;
     }
   });
 
   return (
-    <group ref={helicopterRef}>
-      {/* Main fuselage */}
-      <mesh position={[0, 0, 0]} castShadow>
-        <capsuleGeometry args={[0.5, 2, 8, 16]} />
-        <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.1} />
+    <group ref={helicopterRef} rotation={[0, -0.45, 0]}>
+      {/* Fuselage uses the X axis as the aircraft's nose-to-tail axis. */}
+      <mesh position={[0.15, 0.05, 0]} scale={[1.35, 0.62, 0.58]} castShadow receiveShadow>
+        <sphereGeometry args={[0.72, 40, 24]} />
+        <meshPhysicalMaterial color="#202934" metalness={0.78} roughness={0.24} clearcoat={0.45} />
+      </mesh>
+      <mesh position={[0.73, 0.13, 0]} scale={[0.68, 0.48, 0.52]} castShadow>
+        <sphereGeometry args={[0.7, 32, 20]} />
+        <meshPhysicalMaterial color="#5cc8ea" transparent opacity={0.52} roughness={0.08} metalness={0.25} clearcoat={1} />
+      </mesh>
+      <mesh position={[0.12, 0.58, 0]} castShadow>
+        <boxGeometry args={[0.75, 0.2, 0.72]} />
+        <meshStandardMaterial color="#151b24" metalness={0.9} roughness={0.22} />
       </mesh>
 
-      {/* Cockpit glass */}
-      <mesh position={[0, 0.2, 0.6]} castShadow>
-        <sphereGeometry args={[0.45, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
-        <meshStandardMaterial color="#00ccff" transparent opacity={0.4} metalness={0.8} roughness={0.2} />
+      {/* Engine cowling and exhausts */}
+      <mesh position={[-0.48, 0.48, 0]} scale={[0.8, 0.42, 0.46]} castShadow>
+        <sphereGeometry args={[0.62, 24, 16]} />
+        <meshStandardMaterial color="#303d4d" metalness={0.82} roughness={0.25} />
       </mesh>
+      {[-0.2, 0.2].map((z) => (
+        <mesh key={z} position={[-0.88, 0.47, z]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.095, 0.12, 0.28, 16]} />
+          <meshStandardMaterial color="#111820" metalness={0.95} roughness={0.2} />
+        </mesh>
+      ))}
 
-      {/* Landing skids */}
-      <group position={[0, -0.5, 0]}>
-        <mesh position={[-0.5, 0, 0]} castShadow>
-          <boxGeometry args={[0.08, 0.08, 2]} />
-          <meshStandardMaterial color="#2a2a2a" metalness={0.8} roughness={0.3} />
+      {/* Tapered tail boom, vertical fin, and tail rotor */}
+      <mesh position={[-1.72, 0.23, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.1, 0.24, 2.25, 16]} />
+        <meshStandardMaterial color="#293746" metalness={0.76} roughness={0.28} />
+      </mesh>
+      <mesh position={[-2.72, 0.63, 0]} castShadow>
+        <boxGeometry args={[0.12, 0.95, 0.5]} />
+        <meshStandardMaterial color="#d6a620" metalness={0.72} roughness={0.28} />
+      </mesh>
+      <group ref={tailRotorRef} position={[-2.72, 0.18, 0.3]} rotation={[0, 0, Math.PI / 2]}>
+        <mesh rotation={[0, 0, Math.PI / 4]} castShadow>
+          <boxGeometry args={[0.7, 0.035, 0.08]} />
+          <meshStandardMaterial color="#d6a620" metalness={0.75} roughness={0.22} />
         </mesh>
-        <mesh position={[0.5, 0, 0]} castShadow>
-          <boxGeometry args={[0.08, 0.08, 2]} />
-          <meshStandardMaterial color="#2a2a2a" metalness={0.8} roughness={0.3} />
-        </mesh>
-        {/* Skid connectors */}
-        <mesh position={[0, 0, 0.6]} castShadow>
-          <boxGeometry args={[1, 0.05, 0.05]} />
-          <meshStandardMaterial color="#2a2a2a" />
-        </mesh>
-        <mesh position={[0, 0, -0.6]} castShadow>
-          <boxGeometry args={[1, 0.05, 0.05]} />
-          <meshStandardMaterial color="#2a2a2a" />
+        <mesh rotation={[0, 0, -Math.PI / 4]} castShadow>
+          <boxGeometry args={[0.7, 0.035, 0.08]} />
+          <meshStandardMaterial color="#d6a620" metalness={0.75} roughness={0.22} />
         </mesh>
       </group>
 
-      {/* Main rotor mast */}
-      <mesh position={[0, 0.7, 0]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.3, 8]} />
-        <meshStandardMaterial color="#3a3a3a" metalness={0.9} roughness={0.2} />
+      {/* Rotor mast, hub and four blades */}
+      <mesh position={[-0.08, 1.05, 0]} castShadow>
+        <cylinderGeometry args={[0.055, 0.07, 0.66, 16]} />
+        <meshStandardMaterial color="#111820" metalness={0.9} roughness={0.2} />
       </mesh>
-
-      {/* Main rotor hub */}
-      <mesh position={[0, 0.85, 0]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.08, 16]} />
-        <meshStandardMaterial color="#FFCC33" metalness={0.8} roughness={0.2} />
-      </mesh>
-
-      {/* Main rotor blades */}
-      <group ref={rotorRef} position={[0, 0.9, 0]}>
-        {[0, 1].map((i) => (
-          <mesh key={i} rotation={[0, (i * Math.PI), 0]} position={[1.5, 0, 0]} castShadow>
-            <boxGeometry args={[3, 0.02, 0.15]} />
-            <meshStandardMaterial color="#FFCC33" metalness={0.9} roughness={0.1} emissive="#FFCC33" emissiveIntensity={0.3} />
+      <group ref={rotorRef} position={[-0.08, 1.4, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.14, 0.14, 0.1, 20]} />
+          <meshStandardMaterial color="#d6a620" metalness={0.8} roughness={0.2} />
+        </mesh>
+        {[0, Math.PI / 2].map((rotation) => (
+          <mesh key={rotation} rotation={[0, rotation, 0]} castShadow>
+            <boxGeometry args={[5.1, 0.028, 0.13]} />
+            <meshStandardMaterial color="#202934" metalness={0.82} roughness={0.22} />
           </mesh>
         ))}
       </group>
 
-      {/* Tail boom */}
-      <mesh position={[0, 0.1, -1.2]} rotation={[0, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.12, 0.25, 1.2, 8]} />
-        <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.1} />
-      </mesh>
-
-      {/* Tail fin */}
-      <mesh position={[0, 0.3, -1.8]} rotation={[0, 0, 0]} castShadow>
-        <boxGeometry args={[0.05, 0.4, 0.3]} />
-        <meshStandardMaterial color="#FFCC33" metalness={0.8} roughness={0.2} />
-      </mesh>
-
-      {/* Tail rotor */}
-      <group ref={tailRotorRef} position={[0.5, 0.1, -1.9]}>
-        {[0, 1, 2, 3].map((i) => (
-          <mesh key={i} rotation={[0, 0, (i * Math.PI * 2) / 4]} position={[0, 0.3, 0]} castShadow>
-            <boxGeometry args={[0.02, 0.6, 0.08]} />
-            <meshStandardMaterial color="#FFCC33" metalness={0.9} roughness={0.1} emissive="#FFCC33" emissiveIntensity={0.3} />
+      {/* Skid landing gear */}
+      {[-0.42, 0.42].map((z) => (
+        <group key={z}>
+          <mesh position={[0.05, -0.66, z]} rotation={[0, 0, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.045, 0.045, 2.35, 12]} />
+            <meshStandardMaterial color="#111820" metalness={0.88} roughness={0.23} />
           </mesh>
-        ))}
-      </group>
-
-      {/* Engine exhausts */}
-      <mesh position={[0.3, 0.4, 0]} castShadow>
-        <cylinderGeometry args={[0.08, 0.08, 0.3, 8]} />
-        <meshStandardMaterial color="#4a4a4a" metalness={0.8} roughness={0.3} />
-      </mesh>
-      <mesh position={[-0.3, 0.4, 0]} castShadow>
-        <cylinderGeometry args={[0.08, 0.08, 0.3, 8]} />
-        <meshStandardMaterial color="#4a4a4a" metalness={0.8} roughness={0.3} />
-      </mesh>
+          {[-0.42, 0.45].map((x) => (
+            <mesh key={x} position={[x, -0.42, z]} rotation={[0, 0, x < 0 ? -0.32 : 0.32]} castShadow>
+              <cylinderGeometry args={[0.035, 0.035, 0.62, 10]} />
+              <meshStandardMaterial color="#1b2430" metalness={0.8} roughness={0.25} />
+            </mesh>
+          ))}
+        </group>
+      ))}
     </group>
   );
 }
 
 export default function LandingPage({ onEnter }) {
   const [loading, setLoading] = useState(true);
+  const { theme, toggleTheme, isDark } = useTheme();
 
   useEffect(() => {
     // Simulate loading time
@@ -130,9 +120,22 @@ export default function LandingPage({ onEnter }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-background via-surface to-background flex flex-col items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-background via-surface to-background flex flex-col items-center justify-center overflow-hidden transition-colors duration-300">
+      {/* Theme Toggle Button - Top Right */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-6 right-6 z-50 p-3 rounded-xl bg-surface/80 backdrop-blur-sm border border-border hover:border-primary-500/50 transition-all shadow-lg hover:shadow-gold-glow group"
+        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      >
+        {isDark ? (
+          <Sun className="w-5 h-5 text-primary-500 group-hover:rotate-180 transition-transform duration-500" />
+        ) : (
+          <Moon className="w-5 h-5 text-primary-500 group-hover:-rotate-180 transition-transform duration-500" />
+        )}
+      </button>
+
       {/* Background Grid Pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-20"
         style={{
           backgroundImage: `
@@ -149,47 +152,51 @@ export default function LandingPage({ onEnter }) {
 
       {/* 3D Helicopter Canvas */}
       <div className="w-full h-2/3 relative z-10">
-        <Canvas shadows>
-          <PerspectiveCamera makeDefault position={[4, 2, 4]} fov={50} />
-          
+        <Canvas shadows dpr={[1, 2]}>
+          <PerspectiveCamera makeDefault position={[5.4, 2.6, 6.6]} fov={42} />
+
           {/* Lighting Setup */}
-          <ambientLight intensity={0.3} />
-          <directionalLight 
-            position={[10, 10, 5]} 
-            intensity={1} 
+          <ambientLight intensity={0.55} />
+          <hemisphereLight args={['#bfdfff', '#10151c', 1.1]} />
+          <directionalLight
+            position={[10, 10, 5]}
+            intensity={2.2}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
-          <pointLight position={[-10, 5, -10]} intensity={0.5} color="#FFCC33" />
-          <spotLight 
-            position={[0, 10, 0]} 
-            angle={0.3} 
-            penumbra={0.5} 
-            intensity={0.5}
+          <pointLight position={[-5, 3, 4]} intensity={0.9} color="#6ccff6" />
+          <spotLight
+            position={[0, 10, 0]}
+            angle={0.3}
+            penumbra={0.5}
+            intensity={1.1}
             color="#FFCC33"
             castShadow
           />
-          
+
           {/* Helicopter Model */}
           <Helicopter3DModel />
-          
+
           {/* Ground plane with shadow */}
-          <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.8, 0]}>
-            <planeGeometry args={[20, 20]} />
-            <meshStandardMaterial color="#0a0a0a" metalness={0.3} roughness={0.8} />
+          <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.95, 0]}>
+            <planeGeometry args={[30, 30]} />
+            <meshStandardMaterial color="#080d14" metalness={0.35} roughness={0.72} />
           </mesh>
-          
+          <ContactShadows position={[0, -0.94, 0]} opacity={0.7} scale={12} blur={2.8} far={4} />
+
           {/* Fog for depth */}
           <fog attach="fog" args={['rgb(var(--background))', 8, 20]} />
-          
+
           {/* Orbit Controls */}
-          <OrbitControls 
-            enablePan={false} 
+          <OrbitControls
+            enablePan={false}
             enableZoom={false}
-            autoRotate={false}
-            minPolarAngle={Math.PI / 4}
-            maxPolarAngle={Math.PI / 2}
+            enableDamping
+            dampingFactor={0.06}
+            minPolarAngle={Math.PI / 5}
+            maxPolarAngle={Math.PI * 0.58}
+            target={[-0.5, 0.2, 0]}
           />
         </Canvas>
 
@@ -220,8 +227,8 @@ export default function LandingPage({ onEnter }) {
 
         {/* Description */}
         <p className="text-lg text-muted leading-relaxed max-w-2xl mx-auto">
-          Advanced helicopter technical analysis platform powered by local AI. 
-          Query real datasets, analyze engine health, review maintenance records, and perform prognostics — 
+          Advanced helicopter technical analysis platform powered by local AI.
+          Query real datasets, analyze engine health, review maintenance records, and perform prognostics —
           <strong className="gold-accent"> 100% offline</strong>.
         </p>
 

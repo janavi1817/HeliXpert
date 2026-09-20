@@ -188,7 +188,7 @@ class DataService {
     return data;
   }
   // AI Analyst - Must work with real data only
-  async queryAI(question) {
+  async queryAI(question, mode = 'nlp', language = 'en') {
     if (!question || question.trim().length === 0) {
       return {
         error: 'Please provide a question to analyze.',
@@ -196,7 +196,7 @@ class DataService {
       };
     }
     
-    const result = await withErrorHandling(() => apiService.queryAI(question), null);
+    const result = await withErrorHandling(() => apiService.queryAI(question, mode, language), null);
     
     if (!result) {
       return {

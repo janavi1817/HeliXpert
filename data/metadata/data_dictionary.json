@@ -1,0 +1,633 @@
+{
+    "generated_at": "2026-09-20T11:40:06.035007",
+    "datasets": {},
+    "tables": {
+        "dataset_sources": {
+            "record_count": 4,
+            "columns": {
+                "source_id": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "AVIATION_MAINTENANCE",
+                        "HELICOPTER_COMPONENTS",
+                        "HELICOPTER_MASTER",
+                        "PHM_HELICOPTER_ENGINE"
+                    ]
+                },
+                "dataset_name": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Helicopter Master Reference Dataset",
+                        "Helicopter Component Reference Taxonomy",
+                        "Annotated Aviation Maintenance Logbook",
+                        "PHM 2024 Helicopter Turboshaft Engine Health Dataset"
+                    ]
+                },
+                "provider": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Verified Public Sources",
+                        "Reference Taxonomy",
+                        "Aviation Maintenance Dataset",
+                        "PHM North America 2024"
+                    ]
+                },
+                "source_url": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Multiple verified aviation sources",
+                        "Internal reference compilation",
+                        "Annotated maintenance records dataset",
+                        "PHM Conference 2024 Challenge Dataset"
+                    ]
+                },
+                "license": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Public Domain",
+                        "Reference Use",
+                        "Dataset License",
+                        "Challenge Dataset License"
+                    ]
+                },
+                "description": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Real helicopter specifications and reference data - verified public information",
+                        "General helicopter component taxonomy - not official IPC data",
+                        "Real annotated aviation maintenance logbook with problem/action/cause analysis",
+                        "Real helicopter turboshaft engine health monitoring dataset with fault detection labels"
+                    ]
+                },
+                "dataset_type": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Helicopter Intelligence",
+                        "Helicopter Components",
+                        "Aviation Maintenance",
+                        "Helicopter Engine Health"
+                    ]
+                },
+                "created_at": {
+                    "data_type": "TIMESTAMP",
+                    "sample_values": [
+                        "2026-09-20 11:38:48",
+                        "2026-09-20 11:38:49"
+                    ]
+                }
+            }
+        },
+        "cmapss_observations": {
+            "record_count": 0,
+            "columns": {
+                "cmapss_id": {
+                    "data_type": "INTEGER",
+                    "sample_values": []
+                },
+                "dataset_name": {
+                    "data_type": "TEXT",
+                    "sample_values": []
+                },
+                "engine_unit": {
+                    "data_type": "INTEGER",
+                    "sample_values": []
+                },
+                "cycle": {
+                    "data_type": "INTEGER",
+                    "sample_values": []
+                },
+                "operational_condition_1": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "operational_condition_2": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "operational_condition_3": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_1": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_2": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_3": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_4": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_5": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_6": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_7": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_8": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_9": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_10": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_11": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_12": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_13": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_14": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_15": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_16": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_17": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_18": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_19": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "sensor_20": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "rul": {
+                    "data_type": "REAL",
+                    "sample_values": []
+                },
+                "dataset_id": {
+                    "data_type": "TEXT",
+                    "sample_values": []
+                },
+                "source_id": {
+                    "data_type": "TEXT",
+                    "sample_values": []
+                }
+            }
+        },
+        "helicopters": {
+            "record_count": 10,
+            "columns": {
+                "helicopter_id": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "HEL-H125",
+                        "HEL-H135",
+                        "HEL-AW139",
+                        "HEL-B412",
+                        "HEL-UH60"
+                    ]
+                },
+                "model": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "H125",
+                        "H135",
+                        "AW139",
+                        "Bell 412",
+                        "UH-60M"
+                    ]
+                },
+                "manufacturer": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Airbus Helicopters",
+                        "Leonardo Helicopters",
+                        "Bell Textron",
+                        "Sikorsky / Lockheed Martin",
+                        "Bell"
+                    ]
+                },
+                "variant": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "H125",
+                        "H135",
+                        "AW139M",
+                        "412 EPX",
+                        "UH-60M Black Hawk"
+                    ]
+                },
+                "helicopter_type": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Light single-engine utility",
+                        "Light twin-engine multi-role",
+                        "Medium twin-engine multi-role",
+                        "Medium twin-engine utility",
+                        "Military utility"
+                    ]
+                },
+                "rotor_configuration": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Main rotor + conventional tail rotor",
+                        "Bearingless main rotor + Fenestron",
+                        "Main rotor + tail rotor",
+                        "Four-blade main rotor + tail rotor",
+                        "Main rotor + Fenestron"
+                    ]
+                },
+                "country": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "France",
+                        "France/Germany",
+                        "Italy",
+                        "United States"
+                    ]
+                },
+                "data_status": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "verified_public",
+                        "image_label_only"
+                    ]
+                },
+                "source": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Airbus H125 technical information",
+                        "Airbus H135 technical information",
+                        "Leonardo AW139M technical data",
+                        "Bell 412 official product page",
+                        "Lockheed Martin UH-60M page"
+                    ]
+                },
+                "source_id": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "HELICOPTER_MASTER"
+                    ]
+                }
+            }
+        },
+        "components": {
+            "record_count": 8,
+            "columns": {
+                "component_id": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "COMP-ROTOR-MAIN",
+                        "COMP-ROTOR-TAIL",
+                        "COMP-ENGINE",
+                        "COMP-TRANS",
+                        "COMP-FUEL"
+                    ]
+                },
+                "component_type": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Rotor System",
+                        "Propulsion",
+                        "Transmission",
+                        "Fuel System",
+                        "Hydraulic System"
+                    ]
+                },
+                "component_name": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Main Rotor",
+                        "Tail Rotor / Fenestron",
+                        "Turboshaft Engine",
+                        "Main Transmission",
+                        "Fuel System"
+                    ]
+                },
+                "description": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "Primary lift/thrust rotor",
+                        "Anti-torque system; configuration varies by helicopter",
+                        "Primary propulsion powerplant",
+                        "Transfers engine power to rotor system",
+                        "Fuel storage and delivery system"
+                    ]
+                },
+                "source_type": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "reference_taxonomy"
+                    ]
+                }
+            }
+        },
+        "maintenance_records": {
+            "record_count": 6169,
+            "columns": {
+                "IDENT": {
+                    "data_type": "INTEGER",
+                    "sample_values": [
+                        100001,
+                        100002,
+                        100003,
+                        100004,
+                        100005
+                    ]
+                },
+                "PROBLEM": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "ENGINE IDLE OVERRIDE KILLED ENGINE.",
+                        "#2 & 4 CYLINDER ROCKER COVER GASKETS ARE LEAKING.",
+                        "ROCKER BOX COVER SCREWS LOOSE (ALL CYLINDER).",
+                        "INDUCTION TUBE HOSE CLAMPS LOOSE (ALL CYLINDER).",
+                        "#3 INTAKE IS LEAKING."
+                    ]
+                },
+                "PROBLEM_TYPE": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "OK",
+                        "DIFFICULT",
+                        "AFT L/H ENGINE"
+                    ]
+                },
+                "LOCATION": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "ENGINE",
+                        "#2 & 4 CYLINDER",
+                        "ALL CYLINDER",
+                        "#3",
+                        "#2"
+                    ]
+                },
+                "PROBLEM_PART": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        null,
+                        "ROCKER COVER GASKETS",
+                        "ROCKER BOX COVER SCREWS",
+                        "INDUCTION TUBE HOSE CLAMPS",
+                        "INTAKE"
+                    ]
+                },
+                "TAGGEDPROBLEM": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "OVERRIDE",
+                        "LEAKING",
+                        "LOOSE",
+                        null,
+                        "CRACKED"
+                    ]
+                },
+                "EFFECT": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "KILLED",
+                        null,
+                        "BOUNCES ",
+                        "VIBERATION",
+                        "BACK FIRED"
+                    ]
+                },
+                "ACTION": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "TRIED TO ADJUST IDLE SEVERAL TIMES, WOULDN'T ADJUST.",
+                        "REMOVED & REPLACED FUEL SERVO",
+                        "A/C WAS RUN UP, SET IDLE SPEED, MIXTURE OK, NO LEAKS NO",
+                        "PERFORMED ENGINE RUN UP, FOUND CYLINDER 2 LOWER PLUG FOULED.",
+                        "REMOVED & REPLACED GASKETS."
+                    ]
+                },
+                "ACTION_TYPE": {
+                    "data_type": "REAL",
+                    "sample_values": [
+                        null
+                    ]
+                },
+                "INSTALL_REPLACE_WITH": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        null,
+                        "NEW",
+                        "LIKE MATERIAL",
+                        "WITH SCREW & NUT",
+                        "REPAIRED"
+                    ]
+                },
+                "ACTION_PART": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "IDLE",
+                        "FUEL SERVO",
+                        "A/C, IDLE SPEED , LEAK",
+                        "ENGINE",
+                        "GASKETS"
+                    ]
+                },
+                "TAGGEDACTION": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "ADJUST",
+                        "REMOVED & REPLACED",
+                        "RUN , SET , CHECKED",
+                        "RUN , FOUND",
+                        "TIGHTENED"
+                    ]
+                },
+                "CAUSE": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        null,
+                        "CYLINDER 2 LOWER PLUG FOULED",
+                        "TUBE TO BE CRACKED",
+                        "CRACKED",
+                        " #3 CYLINDER HAD VERY L"
+                    ]
+                },
+                "source_id": {
+                    "data_type": "TEXT",
+                    "sample_values": [
+                        "AVIATION_MAINTENANCE"
+                    ]
+                }
+            }
+        },
+        "maintenance_search": {
+            "record_count": 6169,
+            "columns": {
+                "IDENT": {
+                    "data_type": "",
+                    "sample_values": [
+                        100001,
+                        100002,
+                        100003,
+                        100004,
+                        100005
+                    ]
+                },
+                "PROBLEM": {
+                    "data_type": "",
+                    "sample_values": [
+                        "ENGINE IDLE OVERRIDE KILLED ENGINE.",
+                        "#2 & 4 CYLINDER ROCKER COVER GASKETS ARE LEAKING.",
+                        "ROCKER BOX COVER SCREWS LOOSE (ALL CYLINDER).",
+                        "INDUCTION TUBE HOSE CLAMPS LOOSE (ALL CYLINDER).",
+                        "#3 INTAKE IS LEAKING."
+                    ]
+                },
+                "PROBLEM_TYPE": {
+                    "data_type": "",
+                    "sample_values": [
+                        "OK",
+                        "DIFFICULT",
+                        "AFT L/H ENGINE"
+                    ]
+                },
+                "LOCATION": {
+                    "data_type": "",
+                    "sample_values": [
+                        "ENGINE",
+                        "#2 & 4 CYLINDER",
+                        "ALL CYLINDER",
+                        "#3",
+                        "#2"
+                    ]
+                },
+                "PROBLEM_PART": {
+                    "data_type": "",
+                    "sample_values": [
+                        null,
+                        "ROCKER COVER GASKETS",
+                        "ROCKER BOX COVER SCREWS",
+                        "INDUCTION TUBE HOSE CLAMPS",
+                        "INTAKE"
+                    ]
+                },
+                "TAGGEDPROBLEM": {
+                    "data_type": "",
+                    "sample_values": [
+                        "OVERRIDE",
+                        "LEAKING",
+                        "LOOSE",
+                        null,
+                        "CRACKED"
+                    ]
+                },
+                "EFFECT": {
+                    "data_type": "",
+                    "sample_values": [
+                        "KILLED",
+                        null,
+                        "BOUNCES ",
+                        "VIBERATION",
+                        "BACK FIRED"
+                    ]
+                },
+                "ACTION": {
+                    "data_type": "",
+                    "sample_values": [
+                        "TRIED TO ADJUST IDLE SEVERAL TIMES, WOULDN'T ADJUST.",
+                        "REMOVED & REPLACED FUEL SERVO",
+                        "A/C WAS RUN UP, SET IDLE SPEED, MIXTURE OK, NO LEAKS NO",
+                        "PERFORMED ENGINE RUN UP, FOUND CYLINDER 2 LOWER PLUG FOULED.",
+                        "REMOVED & REPLACED GASKETS."
+                    ]
+                },
+                "ACTION_TYPE": {
+                    "data_type": "",
+                    "sample_values": [
+                        null
+                    ]
+                },
+                "INSTALL_REPLACE_WITH": {
+                    "data_type": "",
+                    "sample_values": [
+                        null,
+                        "NEW",
+                        "LIKE MATERIAL",
+                        "WITH SCREW & NUT",
+                        "REPAIRED"
+                    ]
+                },
+                "ACTION_PART": {
+                    "data_type": "",
+                    "sample_values": [
+                        "IDLE",
+                        "FUEL SERVO",
+                        "A/C, IDLE SPEED , LEAK",
+                        "ENGINE",
+                        "GASKETS"
+                    ]
+                },
+                "TAGGEDACTION": {
+                    "data_type": "",
+                    "sample_values": [
+                        "ADJUST",
+                        "REMOVED & REPLACED",
+                        "RUN , SET , CHECKED",
+                        "RUN , FOUND",
+                        "TIGHTENED"
+                    ]
+                },
+                "CAUSE": {
+                    "data_type": "",
+                    "sample_values": [
+                        null,
+                        "CYLINDER 2 LOWER PLUG FOULED",
+                        "TUBE TO BE CRACKED",
+                        "CRACKED",
+                        " #3 CYLINDER HAD VERY L"
+                    ]
+                }
+            }
+        },
+        "maintenance_search_data": {
+            "record_count": 165,
+            "columns": {
+                "id": {
+                    "data_type": "INTEGER",
+                    "sample_values": [
+                        1,
+                        10,
+                        137438953473,
+                        137438953474,
+                        137438953475
+                    ]
+                },
+                "block": {
+                    "data_type": "BLOB",
+                    "sample_values": [
+                        
