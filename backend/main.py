@@ -15,7 +15,6 @@ try:
     from backend.api import ai as ai_router
     from backend.api import documents as doc_router
     from backend.api import vision as vision_router
-    from backend.api import prognostics as prog_router
     has_api_modules = True
 except ImportError:
     print("Warning: API modules not found, running in basic mode")
@@ -36,7 +35,6 @@ if has_api_modules:
     app.include_router(ai_router.router)
     app.include_router(doc_router.router)  
     app.include_router(vision_router.router)
-    app.include_router(prog_router.router)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -255,7 +253,6 @@ def get_dashboard_stats():
         helicopter_count = safe_query("SELECT COUNT(*) as count FROM helicopters")
         telemetry_count = safe_query("SELECT COUNT(*) as count FROM sensor_parameters")  
         maintenance_count = safe_query("SELECT COUNT(*) as count FROM maintenance_records")
-        cmapss_count = safe_query("SELECT COUNT(*) as count FROM cmapss_observations")
         fault_count = safe_query("SELECT COUNT(*) as count FROM faults_summary")
         
         # Get health statistics
@@ -271,7 +268,6 @@ def get_dashboard_stats():
             "helicopters": helicopter_count[0]['count'] if helicopter_count else 0,
             "telemetry_observations": telemetry_count[0]['count'] if telemetry_count else 0,
             "maintenance_records": maintenance_count[0]['count'] if maintenance_count else 0,
-            "cmapss_observations": cmapss_count[0]['count'] if cmapss_count else 0,
             "fault_observations": fault_count[0]['count'] if fault_count else 0,
             "health_summary": health_stats[0] if health_stats else {"healthy": 0, "faulty": 0, "total": 0},
             "datasets_loaded": sum(1 for x in [helicopter_count, telemetry_count, maintenance_count] if x and x[0]['count'] > 0)
@@ -281,53 +277,8 @@ def get_dashboard_stats():
             "helicopters": "Error",
             "telemetry_observations": "Error", 
             "maintenance_records": "Error",
-            "cmapss_observations": "Error",
             "error": str(e)
         }
-
-# CMAPSS - NASA turbofan prognostics endpoints
-@app.get("/api/cmapss")
-def get_cmapss_data(limit: int = Query(1000, ge=1, le=10000)):
-    """Get NASA C-MAPSS turbofan engine data - NOT helicopter data"""
-    cmapss_data = safe_query(f"""
-        SELECT dataset_name, engine_unit, cycle, sensor_1, sensor_2, sensor_3, rul
-        FROM cmapss_observations 
-        ORDER BY dataset_name, engine_unit, cycle
-        LIMIT {limit}
-    """)
-    
-    if not cmapss_data:
-        return {"message": "NASA C-MAPSS turbofan dataset not loaded", "data": []}
-    
-    return {
-        "message": "NASA C-MAPSS Turbofan Engine Degradation Dataset - NOT helicopter data",
-        "data": cmapss_data,
-        "note": "This is aerospace turbofan prognostics reference data"
-    }
-
-@app.get("/api/cmapss/summary")
-def get_cmapss_summary():
-    """Get C-MAPSS dataset summary"""
-    summary = safe_query("""
-        SELECT 
-            dataset_name,
-            COUNT(*) as observations,
-            COUNT(DISTINCT engine_unit) as engine_units,
-            MAX(cycle) as max_cycles,
-            AVG(rul) as avg_rul
-        FROM cmapss_observations
-        GROUP BY dataset_name
-        ORDER BY dataset_name
-    """)
-    
-    if not summary:
-        return {"message": "NASA C-MAPSS turbofan dataset not loaded", "data": []}
-    
-    return {
-        "message": "NASA C-MAPSS Turbofan Engine Degradation Summary",
-        "datasets": summary,
-        "note": "Aerospace turbofan prognostics reference - not helicopter data"
-    }
 
 @app.get("/api/health")
 def health_check():
@@ -340,7 +291,7 @@ def health_check():
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         db_tables = [r[0] for r in cursor.fetchall() if not r[0].startswith('sqlite_')]
-        for tbl in ['helicopters', 'sensor_parameters', 'maintenance_records', 'cmapss_observations', 'components']:
+        for tbl in ['helicopters', 'sensor_parameters', 'maintenance_records', 'components']:
             if tbl in db_tables:
                 cursor.execute(f"SELECT COUNT(*) FROM {tbl}")
                 db_counts[tbl] = cursor.fetchone()[0]
@@ -391,7 +342,7 @@ def system_status():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        for tbl in ['helicopters', 'sensor_parameters', 'maintenance_records', 'cmapss_observations', 'components']:
+        for tbl in ['helicopters', 'sensor_parameters', 'maintenance_records', 'components']:
             try:
                 cursor.execute(f"SELECT COUNT(*) FROM {tbl}")
                 count = cursor.fetchone()[0]

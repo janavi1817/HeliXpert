@@ -16,8 +16,7 @@ import {
   FileText,
   Box,
   Sun,
-  Moon,
-  TrendingUp
+  Moon
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, selectedHelicopterId }) {
@@ -32,7 +31,6 @@ export default function Sidebar({ activeTab, setActiveTab, selectedHelicopterId 
     { id: 'parameters', label: 'Telemetry & Params', icon: Activity },
     { id: 'faults', label: 'Faults & Alerts', icon: AlertTriangle, badgeColor: 'status-error' },
     { id: 'maintenance', label: 'Maintenance Log', icon: Wrench },
-    { id: 'prognostics', label: 'Engine Prognostics', icon: TrendingUp },
     { id: 'image-analysis', label: 'Image Vision AI', icon: Camera, badge: 'Vision' },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'datasets', label: 'Dataset Management', icon: ShieldCheck },

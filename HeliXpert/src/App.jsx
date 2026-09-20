@@ -12,7 +12,6 @@ import ComponentsView from './components/ComponentsView';
 import ParametersView from './components/ParametersView';
 import FaultsView from './components/FaultsView';
 import MaintenanceView from './components/MaintenanceView';
-import PrognosticsView from './components/PrognosticsView';
 import ImageAnalysis from './components/ImageAnalysis';
 import KnowledgeBase from './components/KnowledgeBase';
 import DatasetManagement from './components/DatasetManagement';
@@ -99,8 +98,6 @@ export default function App() {
             {activeTab === 'faults' && <FaultsView />}
 
             {activeTab === 'maintenance' && <MaintenanceView />}
-
-            {activeTab === 'prognostics' && <PrognosticsView />}
 
             {activeTab === 'image-analysis' && (
               <ImageAnalysis 

@@ -16,7 +16,6 @@
 - **Fleet Management** — 10 real helicopter models (Airbus, Bell, Sikorsky, etc.)
 - **PHM Engine Telemetry** — 742,625 turboshaft sensor observations with health labels
 - **Maintenance Logbook** — 6,169 annotated real-world aviation maintenance records
-- **Engine Prognostics** — NASA C-MAPSS turbofan degradation data integration
 - **Image Vision AI** — Computer vision architecture for component defect detection (YOLOv8)
 - **Knowledge Base** — Local RAG document search for technical manuals
 - **Premium Theme** — Gold / Black (dark) and Gold / White (light) fully responsive UI
@@ -99,7 +98,6 @@ HeliXpert/
 | PHM Turboshaft Telemetry | 742,625 obs | PHM 2024 Helicopter Engine Health |
 | Annotated Maintenance Logbook | 6,169 records | Aviation maintenance records |
 | Component Reference | 8 types | IPC reference taxonomy |
-| NASA C-MAPSS | (H5 files) | NASA turbofan degradation benchmark |
 
 > **Note:** Raw H5 and large CSV files are excluded from this repo due to file size. Add them to `data/raw/` before running `setup_offline.bat`.
 
@@ -117,7 +115,6 @@ HeliXpert/
 | GET | `/api/maintenance/summary` | Maintenance problem types |
 | POST | `/api/analyst/query` | AI natural language query |
 | GET | `/api/dashboard/stats` | Dashboard KPIs |
-| GET | `/api/cmapss/summary` | C-MAPSS prognostics summary |
 
 Full interactive docs at: `http://localhost:8000/docs`
 

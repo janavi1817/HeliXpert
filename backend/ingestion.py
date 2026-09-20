@@ -3,8 +3,6 @@ import sqlite3
 import os
 import json
 import logging
-import h5py
-import numpy as np
 from datetime import datetime
 
 # Setup paths
@@ -110,43 +108,6 @@ def create_database_schema(conn):
         )
     """)
     
-    # NASA C-MAPSS Observations (Separate turbofan prognostics dataset)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cmapss_observations (
-            cmapss_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dataset_name TEXT,  -- e.g., 'N-CMAPSS_DS01-005'
-            engine_unit INTEGER,
-            cycle INTEGER,
-            operational_condition_1 REAL,
-            operational_condition_2 REAL,
-            operational_condition_3 REAL,
-            sensor_1 REAL,   -- Temperature parameters
-            sensor_2 REAL,
-            sensor_3 REAL,
-            sensor_4 REAL,
-            sensor_5 REAL,
-            sensor_6 REAL,
-            sensor_7 REAL,
-            sensor_8 REAL,
-            sensor_9 REAL,
-            sensor_10 REAL,
-            sensor_11 REAL,
-            sensor_12 REAL,
-            sensor_13 REAL,
-            sensor_14 REAL,
-            sensor_15 REAL,
-            sensor_16 REAL,
-            sensor_17 REAL,
-            sensor_18 REAL,
-            sensor_19 REAL,
-            sensor_20 REAL,
-            rul REAL,         -- Remaining Useful Life (if available)
-            dataset_id TEXT DEFAULT 'NASA_CMAPSS',
-            source_id TEXT,
-            FOREIGN KEY (source_id) REFERENCES dataset_sources(source_id)
-        )
-    """)
-    
     # Fault/Health summary (derived from datasets)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS faults_summary (
@@ -164,8 +125,7 @@ def create_database_schema(conn):
     
     # Create indexes for performance
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_sensor_faulty ON sensor_parameters(faulty)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_cmapss_engine ON cmapss_observations(engine_unit)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_cmapss_dataset ON cmapss_observations(dataset_name)")
+    # NASA C-MAPSS index removed
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_maintenance_type ON maintenance_records(PROBLEM_TYPE)")
     
     conn.commit()
@@ -365,178 +325,6 @@ def ingest_phm_engine(conn):
     logging.info(f"Successfully ingested {len(df)} PHM helicopter engine observations")
     return {"records": len(df), "columns": len(df.columns)}
 
-def ingest_cmapss(conn):
-    """Ingest NASA C-MAPSS turbofan engine degradation datasets"""
-    logging.info("Ingesting NASA C-MAPSS Turbofan Engine Degradation Dataset...")
-    base_path = os.path.join(RAW_DIR, 'cmapss')
-    
-    if not os.path.exists(base_path):
-        logging.warning("CMAPSS dataset directory not found.")
-        return None
-    
-    h5_files = [f for f in os.listdir(base_path) if f.endswith('.h5')]
-    
-    if not h5_files:
-        logging.warning("No CMAPSS H5 files found.")
-        return None
-    
-    total_records = 0
-    processed_datasets = []
-    
-    # Insert dataset source information
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT OR REPLACE INTO dataset_sources 
-        (source_id, dataset_name, provider, source_url, license, description, dataset_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        'NASA_CMAPSS',
-        'NASA C-MAPSS Turbofan Engine Degradation',
-        'NASA Ames Research Center',
-        'https://www.nasa.gov/content/prognostics-center-of-excellence-data-set-repository',
-        'Public Domain',
-        'Turbofan engine degradation simulation dataset for prognostics research - NOT helicopter data',
-        'Aerospace Engine Prognostics'
-    ))
-    
-    for h5_file in h5_files:
-        try:
-            file_path = os.path.join(base_path, h5_file)
-            dataset_name = h5_file.replace('.h5', '')
-            
-            logging.info(f"Processing {h5_file}...")
-            
-            with h5py.File(file_path, 'r') as f:
-                # Inspect H5 file structure
-                def inspect_structure(name, obj):
-                    if isinstance(obj, h5py.Dataset):
-                        logging.info(f"  Dataset: {name}, Shape: {obj.shape}, Type: {obj.dtype}")
-                
-                # f.visititems(inspect_structure)
-                
-                # Try to extract common C-MAPSS structure
-                # Different C-MAPSS datasets may have different structures
-                try:
-                    # Attempt to read typical C-MAPSS arrays
-                    if 'X_s' in f and 'T' in f:
-                        # Standard C-MAPSS format
-                        X_s = f['X_s'][:]  # Sensor measurements
-                        T = f['T'][:]      # Time/cycles
-                        
-                        if 'Y' in f:
-                            Y = f['Y'][:]  # RUL targets
-                        else:
-                            Y = None
-                            
-                        # Convert to DataFrame format
-                        records = []
-                        for i in range(len(T)):
-                            record = {
-                                'dataset_name': dataset_name,
-                                'engine_unit': i + 1,  # Engine unit number
-                                'cycle': int(T[i]) if T[i] > 0 else i + 1,
-                                'source_id': 'NASA_CMAPSS'
-                            }
-                            
-                            # Add operational conditions (typically first 3 columns)
-                            if X_s.ndim >= 2 and X_s.shape[1] >= 3:
-                                record['operational_condition_1'] = float(X_s[i, 0]) if i < X_s.shape[0] else None
-                                record['operational_condition_2'] = float(X_s[i, 1]) if i < X_s.shape[0] else None  
-                                record['operational_condition_3'] = float(X_s[i, 2]) if i < X_s.shape[0] else None
-                            
-                            # Add sensor measurements (typically 20+ sensors)
-                            sensor_start = 3 if X_s.ndim >= 2 else 0
-                            for j in range(min(20, X_s.shape[1] - sensor_start)):
-                                if i < X_s.shape[0] and sensor_start + j < X_s.shape[1]:
-                                    record[f'sensor_{j+1}'] = float(X_s[i, sensor_start + j])
-                            
-                            # Add RUL if available
-                            if Y is not None and i < len(Y):
-                                record['rul'] = float(Y[i])
-                            
-                            records.append(record)
-                        
-                        # Insert into database in batches
-                        if records:
-                            df = pd.DataFrame(records)
-                            df.to_sql('cmapss_observations', conn, if_exists='append', index=False)
-                            total_records += len(records)
-                            processed_datasets.append(dataset_name)
-                            logging.info(f"  Processed {len(records)} observations from {dataset_name}")
-                    
-                    else:
-                        # Try alternative C-MAPSS structures
-                        logging.warning(f"  Unknown H5 structure in {h5_file}, attempting generic extraction...")
-                        
-                        # Get all datasets in the file
-                        datasets = []
-                        def collect_datasets(name, obj):
-                            if isinstance(obj, h5py.Dataset):
-                                datasets.append((name, obj))
-                        
-                        f.visititems(collect_datasets)
-                        
-                        if datasets:
-                            # Use the largest dataset as main data
-                            main_dataset = max(datasets, key=lambda x: x[1].size)
-                            data = main_dataset[1][:]
-                            
-                            if data.ndim == 2:
-                                records = []
-                                for i in range(data.shape[0]):
-                                    record = {
-                                        'dataset_name': dataset_name,
-                                        'engine_unit': i + 1,
-                                        'cycle': i + 1,
-                                        'source_id': 'NASA_CMAPSS'
-                                    }
-                                    
-                                    # Map available columns to sensors
-                                    for j in range(min(20, data.shape[1])):
-                                        if j < 3:
-                                            record[f'operational_condition_{j+1}'] = float(data[i, j])
-                                        else:
-                                            record[f'sensor_{j-2}'] = float(data[i, j])
-                                    
-                                    records.append(record)
-                                
-                                if records:
-                                    df = pd.DataFrame(records)
-                                    df.to_sql('cmapss_observations', conn, if_exists='append', index=False)
-                                    total_records += len(records)
-                                    processed_datasets.append(dataset_name)
-                                    logging.info(f"  Processed {len(records)} observations from {dataset_name} (generic)")
-                        
-                except Exception as e:
-                    logging.error(f"  Error processing {h5_file}: {e}")
-                    continue
-                    
-        except Exception as e:
-            logging.error(f"Error reading {h5_file}: {e}")
-            continue
-    
-    conn.commit()
-    
-    if total_records > 0:
-        logging.info(f"Successfully ingested {total_records} C-MAPSS observations from {len(processed_datasets)} datasets")
-        return {
-            "records": total_records, 
-            "columns": 25,  # Estimated columns
-            "datasets": processed_datasets,
-            "files_processed": len(processed_datasets),
-            "total_files": len(h5_files)
-        }
-    else:
-        logging.warning("No C-MAPSS data was successfully processed")
-        return {
-            "records": 0,
-            "columns": 0,
-            "datasets": [],
-            "files_processed": 0,
-            "total_files": len(h5_files),
-            "error": "No data extracted from H5 files"
-        }
-
 def generate_data_dictionary(conn):
     """Generate comprehensive data dictionary for all datasets"""
     cursor = conn.cursor()
@@ -604,7 +392,6 @@ def run_ingestion():
     registry["datasets"]["components"] = ingest_components(conn)
     registry["datasets"]["maintenance"] = ingest_maintenance(conn)
     registry["datasets"]["phm_engine"] = ingest_phm_engine(conn)
-    registry["datasets"]["cmapss"] = ingest_cmapss(conn)
     
     # Generate data dictionary
     generate_data_dictionary(conn)

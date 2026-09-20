@@ -16,11 +16,6 @@
         "phm_engine": {
             "records": 742625,
             "columns": 10
-        },
-        "cmapss": {
-            "records": 0,
-            "columns": 0,
-            "files": 9
         }
     }
 }
