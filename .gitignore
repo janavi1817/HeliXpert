@@ -37,10 +37,8 @@ data/database/*.db-wal
 data/database/*.db-journal
 
 # ─── Large raw data files (add manually before running setup_offline.bat) ─────
-data/raw/cmapss/*.h5
-data/raw/phm_helicopter/*.csv
-data/raw/phm_helicopter/*.xlsx
-data/raw/phm_helicopter/~$*
+data/raw/cmapss/
+data/raw/phm_helicopter/
 
 # ─── Processed / vectorstore output ──────────────────────────────────────────
 data/processed/
