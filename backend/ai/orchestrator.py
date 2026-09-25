@@ -14,6 +14,7 @@ import logging
 from backend.ai.sql_agent import execute_safe_sql, is_safe_query
 from backend.ai.schema_metadata import get_schema_summary
 from backend.ai.ollama_client import OllamaClient
+from backend.ai.dynamic_query_engine import DynamicQueryEngine
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB_PATH = os.path.join(BASE_DIR, 'data', 'database', 'helixpert.db')
@@ -209,6 +210,10 @@ class AiOrchestrator:
         self.ollama_client = OllamaClient()
         self._ollama_available = self.ollama_client.is_available()
 
+        # Initialize Dynamic Query Engine
+        self.dynamic_engine = DynamicQueryEngine(DB_PATH)
+        logging.info("Dynamic Query Engine initialized")
+
         # Cache DB stats for prompt context (REQ-6.2)
         conn = sqlite3.connect(DB_PATH)
         try:
@@ -277,9 +282,30 @@ Give a concise, professional technical answer. Do not mention SQL. Do not fabric
             return None
 
     def process_query(self, user_query: str, language: str = 'en'):
-        """Legacy rule-based query processing with multilingual explanations."""
-        rule = detect_intent(user_query)
+        """
+        Enhanced query processing using Dynamic Query Engine.
+        Falls back to legacy rule-based system if dynamic engine doesn't match.
+        """
         lang = _normalize_language(language)
+        
+        # Try dynamic query engine first
+        try:
+            logging.info(f"Trying dynamic query engine for: {user_query[:50]}...")
+            dynamic_result = self.dynamic_engine.execute_query(user_query, language=lang)
+            
+            # If dynamic engine successfully processed the query
+            if dynamic_result.get('isValid') and dynamic_result.get('intent') != 'UNKNOWN':
+                logging.info(f"Dynamic engine SUCCESS: intent={dynamic_result.get('intent')}")
+                dynamic_result['isDatasetPending'] = False
+                dynamic_result['mode'] = 'dynamic'
+                return dynamic_result
+            else:
+                logging.info(f"Dynamic engine returned UNKNOWN intent, trying legacy rules...")
+        except Exception as e:
+            logging.warning(f"Dynamic query engine failed: {e}, falling back to legacy rules")
+        
+        # Fallback to legacy rule-based system
+        rule = detect_intent(user_query)
 
         if rule:
             result = execute_safe_sql(rule["sql"])
@@ -307,7 +333,8 @@ Give a concise, professional technical answer. Do not mention SQL. Do not fabric
                 "explanation": explanation,
                 "chartType": chart_type,
                 "chartData": chart_data,
-                "isDatasetPending": False
+                "isDatasetPending": False,
+                "mode": "legacy_rules"
             }
         else:
             # No rule matched
@@ -327,7 +354,8 @@ Give a concise, professional technical answer. Do not mention SQL. Do not fabric
                 "explanation": explanation,
                 "chartType": "none",
                 "chartData": [],
-                "isDatasetPending": False
+                "isDatasetPending": False,
+                "mode": "fallback"
             }
 
     # ==================== NEW METHODS FOR AI UPGRADE ====================

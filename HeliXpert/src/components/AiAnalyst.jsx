@@ -101,7 +101,7 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
 
   // Feature states
   const [mode, setMode] = useState('nlp'); // 'nlp' or 'rag'
-  const [language, setLanguage] = useState('en'); // 'en', 'hi', 'kn'
+  const [language, setLanguage] = useState('en'); // 'en', 'kn'
   const [isListening, setIsListening] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted
   const [ollamaStatus, setOllamaStatus] = useState({ available: false, model: null });
@@ -316,7 +316,6 @@ export default function AiAnalyst({ initialPrompt, clearInitialPrompt }) {
               className="bg-transparent text-xs font-mono text-foreground border-none outline-none cursor-pointer"
             >
               <option value="en">English</option>
-              <option value="hi">हिंदी</option>
               <option value="kn">ಕನ್ನಡ</option>
             </select>
           </div>
