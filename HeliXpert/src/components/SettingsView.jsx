@@ -1,31 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { aiEngine } from '../services/aiEngine';
 import { dataService } from '../services/dataService';
-import EmptyState from './EmptyState';
-import { Settings, Database, Server, RefreshCw, Check, Activity, CheckCircle2 } from 'lucide-react';
+import {
+  Settings, Server, Database, Activity,
+  CheckCircle2, AlertCircle, Check, RefreshCw, Sun, Moon
+} from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function SettingsView() {
-  const [ollamaUrl, setOllamaUrl] = useState(aiEngine.ollamaUrl);
-  const [useOllama, setUseOllama] = useState(aiEngine.useOllama);
-  const [modelName, setModelName] = useState(aiEngine.modelName);
+  const { theme, toggleTheme } = useTheme();
+  const [ollamaUrl, setOllamaUrl] = useState(aiEngine.ollamaUrl || 'http://localhost:11434');
+  const [useOllama, setUseOllama] = useState(aiEngine.useOllama || false);
+  const [modelName, setModelName] = useState(aiEngine.modelName || 'llama3:8b');
   const [saved, setSaved] = useState(false);
-  const [systemStatus, setSystemStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
-    loadSystemStatus();
+    fetchStatus();
   }, []);
 
-  const loadSystemStatus = async () => {
+  const fetchStatus = async () => {
     try {
-      setLoading(true);
-      const status = await dataService.getSystemStatus();
-      setSystemStatus(status);
-    } catch (error) {
-      console.error('Error loading system status:', error);
-      setSystemStatus({ database: 'error', backend: 'error' });
-    } finally {
-      setLoading(false);
+      const s = await dataService.getSystemStatus();
+      setStatus(s);
+    } catch {
+      setStatus({ backend: 'offline', database: 'error' });
     }
   };
 
@@ -36,175 +35,143 @@ export default function SettingsView() {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const handleReloadDatasets = async () => {
-    if (window.confirm("Reload all datasets from raw data files? This may take a few minutes.")) {
-      try {
-        alert('Please run setup_offline.bat to reload datasets from the terminal.');
-      } catch (error) {
-        console.error('Error reloading datasets:', error);
-        alert('Failed to reload datasets. Please run setup_offline.bat manually.');
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6 pb-8">
-        <EmptyState 
-          title="Loading Settings"
-          message="Fetching system configuration..."
-          loading={true}
-          type="info"
-        />
-      </div>
-    );
-  }
+  const StatusBadge = ({ ok, labelOk = 'Online', labelFail = 'Offline' }) => ok
+    ? <span className="status-success text-xs px-2 py-0.5 rounded font-mono">{labelOk}</span>
+    : <span className="status-error text-xs px-2 py-0.5 rounded font-mono">{labelFail}</span>;
 
   return (
-    <div className="space-y-6 max-w-4xl pb-8">
+    <div className="space-y-5 max-w-2xl pb-8">
       {/* Header */}
       <div className="card-premium p-5">
         <h2 className="text-lg font-bold font-mono text-foreground flex items-center gap-2">
-          <Settings className="w-5 h-5 text-primary-500" /> HeliXpert System Configuration
+          <Settings className="w-5 h-5 text-primary-500" /> Settings
         </h2>
         <p className="text-xs text-muted font-mono mt-0.5">
-          Configure offline AI query processing, local LLM server endpoints, and relational database persistence.
+          System status, AI engine configuration, and appearance.
         </p>
       </div>
 
       {/* System Status */}
-      <div className="card-premium p-6 space-y-4">
-        <h3 className="text-sm font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Activity className="w-4 h-4 text-primary-500" /> System Health Status
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-surface-variant border border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-mono text-foreground">Backend API</span>
-              {systemStatus?.backend === 'online' ? (
-                <span className="status-success text-xs px-2 py-0.5 rounded font-mono">Online</span>
-              ) : (
-                <span className="status-error text-xs px-2 py-0.5 rounded font-mono">Offline</span>
-              )}
-            </div>
+      <div className="card-premium p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5 text-primary-500" /> System Status
+          </h3>
+          <button onClick={fetchStatus} className="text-muted hover:text-foreground transition">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant border border-border">
+            <span className="text-xs font-mono text-foreground">Backend API</span>
+            <StatusBadge ok={status?.backend === 'online'} />
           </div>
-
-          <div className="p-4 rounded-xl bg-surface-variant border border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-mono text-foreground">SQLite Database</span>
-              {systemStatus?.database === 'ready' ? (
-                <span className="status-success text-xs px-2 py-0.5 rounded font-mono">Ready</span>
-              ) : (
-                <span className="status-error text-xs px-2 py-0.5 rounded font-mono">Error</span>
-              )}
-            </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant border border-border">
+            <span className="text-xs font-mono text-foreground">Database</span>
+            <StatusBadge ok={status?.database === 'ready'} labelOk="Ready" labelFail="Error" />
           </div>
-
-          <div className="p-4 rounded-xl bg-surface-variant border border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-mono text-foreground">Datasets Loaded</span>
-              <span className="text-sm font-bold gold-accent font-mono">
-                {systemStatus?.datasets_loaded || 0}/5
-              </span>
-            </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant border border-border">
+            <span className="text-xs font-mono text-foreground">Datasets Loaded</span>
+            <span className="text-xs font-bold gold-accent font-mono">{status?.datasets_loaded ?? '—'}/4</span>
           </div>
-
-          <div className="p-4 rounded-xl bg-surface-variant border border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-mono text-foreground">Offline Mode</span>
-              <span className="status-success text-xs px-2 py-0.5 rounded font-mono flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> 100%
-              </span>
-            </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant border border-border">
+            <span className="text-xs font-mono text-foreground">Mode</span>
+            <span className="status-success text-xs px-2 py-0.5 rounded font-mono flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> 100% Offline
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Local AI Engine Settings */}
-      <div className="card-premium p-6 space-y-4">
-        <h3 className="text-sm font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Server className="w-4 h-4 text-primary-500" /> Offline AI Execution Mode
+      {/* Appearance */}
+      <div className="card-premium p-5 space-y-3">
+        <h3 className="text-xs font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
+          {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-primary-500" /> : <Moon className="w-3.5 h-3.5 text-primary-500" />}
+          Appearance
         </h3>
-
-        <form onSubmit={handleSave} className="space-y-4 font-mono text-xs">
-          <div className="p-4 rounded-xl bg-surface-variant border border-border space-y-2">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useOllama}
-                onChange={(e) => setUseOllama(e.target.checked)}
-                className="w-4 h-4 rounded text-primary-500 focus:ring-0 bg-surface border-border"
-              />
-              <span className="text-foreground font-bold">Connect to Local LLM Server (Ollama / Llama.cpp)</span>
-            </label>
-            <p className="text-muted text-[11px] pl-7">
-              When disabled (Default), HeliXpert uses its instant client-side Intent & Safe SQL processor.
-            </p>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant border border-border">
+          <div>
+            <p className="text-sm font-mono text-foreground">Theme</p>
+            <p className="text-xs text-muted font-mono">{theme === 'dark' ? 'Dark mode is active' : 'Light mode is active'}</p>
           </div>
+          <button onClick={toggleTheme} className="btn-secondary text-xs flex items-center gap-1.5">
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+        </div>
+      </div>
+
+      {/* AI Engine */}
+      <div className="card-premium p-5 space-y-3">
+        <h3 className="text-xs font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
+          <Server className="w-3.5 h-3.5 text-primary-500" /> AI Engine
+        </h3>
+        <form onSubmit={handleSave} className="space-y-3">
+          <label className="flex items-center gap-3 p-3 rounded-lg bg-surface-variant border border-border cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useOllama}
+              onChange={(e) => setUseOllama(e.target.checked)}
+              className="w-4 h-4 text-primary-500"
+            />
+            <div>
+              <p className="text-xs font-mono font-bold text-foreground">Use Local LLM (Ollama)</p>
+              <p className="text-[11px] text-muted font-mono">
+                Connect to a local Ollama server for richer AI responses. Off = built-in rule engine.
+              </p>
+            </div>
+          </label>
 
           {useOllama && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-1">
               <div>
-                <label className="text-muted block mb-1">Local Ollama Server URL</label>
+                <label className="text-[11px] text-muted font-mono block mb-1">Ollama URL</label>
                 <input
                   type="text"
                   value={ollamaUrl}
                   onChange={(e) => setOllamaUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-foreground"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-border text-foreground font-mono"
                 />
               </div>
               <div>
-                <label className="text-muted block mb-1">Model Tag / Identifier</label>
+                <label className="text-[11px] text-muted font-mono block mb-1">Model</label>
                 <input
                   type="text"
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-foreground"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-border text-foreground font-mono"
                 />
               </div>
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
-            <button
-              type="submit"
-              className="btn-primary flex items-center space-x-2"
-            >
-              {saved ? <Check className="w-4 h-4" /> : null}
-              <span>{saved ? 'Configuration Saved!' : 'Save AI Settings'}</span>
-            </button>
-          </div>
+          <button type="submit" className="btn-primary flex items-center gap-2 text-xs">
+            {saved ? <Check className="w-3.5 h-3.5" /> : null}
+            {saved ? 'Saved!' : 'Save Settings'}
+          </button>
         </form>
       </div>
 
-      {/* Local Database Management */}
-      <div className="card-premium p-6 space-y-4">
-        <h3 className="text-sm font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Database className="w-4 h-4 text-primary-500" /> Dataset Management
+      {/* Data */}
+      <div className="card-premium p-5 space-y-3">
+        <h3 className="text-xs font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-2">
+          <Database className="w-3.5 h-3.5 text-primary-500" /> Data
         </h3>
-
-        <div className="flex items-center justify-between p-4 rounded-xl bg-surface-variant border border-border">
+        <div className="p-3 rounded-lg bg-surface-variant border border-border flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-bold text-foreground font-mono">Reload All Datasets</h4>
-            <p className="text-xs text-muted font-mono mt-0.5">
-              Re-ingest raw CSV and H5 files: helicopters, maintenance logs, PHM telemetry, C-MAPSS data.
-            </p>
+            <p className="text-xs font-mono font-bold text-foreground">Reload Datasets</p>
+            <p className="text-[11px] text-muted font-mono">Re-ingest from raw CSV / H5 files.</p>
           </div>
           <button
-            onClick={handleReloadDatasets}
-            className="btn-secondary flex items-center space-x-1.5"
+            onClick={() => alert('Run setup_offline.bat from the project root to reload datasets.')}
+            className="btn-secondary text-xs flex items-center gap-1.5"
           >
-            <RefreshCw className="w-4 h-4" />
-            <span>Reload Data</span>
+            <RefreshCw className="w-3.5 h-3.5" /> Reload
           </button>
         </div>
-
-        <div className="p-4 rounded-xl bg-info-light/10 dark:bg-info-dark/10 border border-info-light/20 dark:border-info-dark/20">
-          <p className="text-xs font-mono text-info-light dark:text-info-dark leading-relaxed">
-            <strong>Note:</strong> To fully reload datasets from raw files, run <code className="px-1 py-0.5 bg-surface rounded">setup_offline.bat</code> from the project root directory. This will re-create the SQLite database with all CSV and H5 data sources.
-          </p>
-        </div>
+        <p className="text-[11px] font-mono text-muted px-1">
+          Database: <code>data/database/helixpert.db</code> · Raw data: <code>data/raw/</code>
+        </p>
       </div>
     </div>
   );

@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
-import { dataService } from '../services/dataService';
-import EmptyState from './EmptyState';
-import { 
-  Camera, 
-  Upload, 
-  Image as ImageIcon, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Cpu,
-  Eye,
-  Layers,
-  FileImage
+import React, { useState, useRef } from 'react';
+import {
+  Camera, Upload, AlertTriangle, CheckCircle2,
+  Eye, Activity, Shield, Wrench, ImageIcon, RefreshCw
 } from 'lucide-react';
+
+const SEVERITY_STYLES = {
+  high:   'bg-red-500/10 text-red-400 border border-red-500/30',
+  medium: 'bg-orange-500/10 text-orange-400 border border-orange-500/30',
+  low:    'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30',
+};
+
+const STATUS_STYLES = {
+  Healthy:  'text-green-400',
+  Warning:  'text-yellow-400',
+  Damaged:  'text-orange-400',
+  Critical: 'text-red-400',
+};
+
+const STATUS_BAR = {
+  Healthy:  'bg-green-500',
+  Warning:  'bg-yellow-500',
+  Damaged:  'bg-orange-500',
+  Critical: 'bg-red-500',
+};
 
 export default function ImageAnalysis() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -19,155 +30,121 @@ export default function ImageAnalysis() {
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const inputRef = useRef(null);
 
-  const handleImageUpload = (event) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please upload a valid image file (JPG, PNG, BMP, etc.)');
+      setError('Please upload a valid image (JPG, PNG, BMP).');
       return;
     }
-
     setSelectedImage(file);
-    setError(null);
     setResults(null);
-
-    // Create image preview
+    setError(null);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target.result);
-    };
+    reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  const analyzeImage = async () => {
-    if (!selectedImage) {
-      setError('Please upload an image first');
-      return;
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const fakeEvent = { target: { files: [file] } };
+      handleImageUpload(fakeEvent);
     }
+  };
 
+  const analyzeImage = async () => {
+    if (!selectedImage) return;
+    setAnalyzing(true);
+    setError(null);
     try {
-      setAnalyzing(true);
-      setError(null);
-
       const formData = new FormData();
-      formData.append('image', selectedImage);
-
-      const response = await fetch('http://localhost:8000/api/vision/analyze', {
+      formData.append('file', selectedImage);
+      const res = await fetch('http://localhost:8000/api/vision/analyze', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
-
-      if (!response.ok) {
-        throw new Error('Image analysis failed');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Analysis failed');
       }
-
-      const data = await response.json();
+      const data = await res.json();
       setResults(data);
     } catch (err) {
-      console.error('Error analyzing image:', err);
-      setError('Vision AI is currently offline. Ensure local vision model is running.');
-      setResults(null);
+      setError(err.message || 'Vision AI unavailable. Make sure the backend is running on port 8000.');
     } finally {
       setAnalyzing(false);
     }
   };
 
+  const reset = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setResults(null);
+    setError(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const isHealthy = results && !results.defects_detected;
+  const isDamaged = results && results.defects_detected;
+
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="card-premium p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-bold font-mono text-foreground flex items-center gap-2">
-              <Camera className="w-5 h-5 text-primary-500" /> 
-              Computer Vision AI - Component Inspection
-            </h2>
-            <p className="text-xs text-muted font-mono mt-0.5">
-              Offline visual fault detection and component anomaly identification using local vision models.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-500 text-xs font-mono">
-            <Cpu className="w-3.5 h-3.5" />
-            <span>Local Model</span>
-          </div>
+      <div className="card-premium p-5 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold font-mono text-foreground flex items-center gap-2">
+            <Camera className="w-5 h-5 text-primary-500" />
+            Image Vision AI — Helicopter Inspection
+          </h2>
+          <p className="text-xs text-muted font-mono mt-0.5">
+            Upload a helicopter image to detect defects by part, or confirm healthy status.
+          </p>
         </div>
+        {results && (
+          <button onClick={reset} className="btn-secondary flex items-center gap-1.5 text-xs">
+            <RefreshCw className="w-3.5 h-3.5" /> New Analysis
+          </button>
+        )}
       </div>
 
-      {/* Vision AI Architecture Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="metric-card">
-          <div>
-            <span className="metric-label">Model Architecture</span>
-            <div className="text-sm font-bold text-foreground font-mono">YOLOv8 + ResNet50</div>
-          </div>
-          <div className="metric-icon">
-            <Layers className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div>
-            <span className="metric-label">Detection Types</span>
-            <div className="text-sm font-bold text-foreground font-mono">Cracks, Corrosion, Wear</div>
-          </div>
-          <div className="metric-icon">
-            <Eye className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div>
-            <span className="metric-label">Processing Mode</span>
-            <div className="text-sm font-bold text-success-light dark:text-success-dark font-mono flex items-center gap-1">
-              <CheckCircle2 className="w-4 h-4" /> Offline
-            </div>
-          </div>
-          <div className="metric-icon">
-            <Cpu className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Analysis Area */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upload Section */}
+        {/* Upload Panel */}
         <div className="card-premium p-6 space-y-4">
-          <h3 className="text-base font-bold font-mono text-foreground flex items-center gap-2">
-            <Upload className="w-5 h-5 text-primary-500" />
-            Upload Component Image
+          <h3 className="text-sm font-bold font-mono text-foreground flex items-center gap-2">
+            <Upload className="w-4 h-4 text-primary-500" /> Upload Image
           </h3>
 
-          <label className="block cursor-pointer">
-            <div className="border-2 border-dashed border-border hover:border-primary-500 rounded-xl p-8 transition-colors">
+          {/* Drop zone */}
+          <label
+            className="block cursor-pointer"
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            <div className={`border-2 border-dashed rounded-xl transition-colors ${
+              imagePreview ? 'border-primary-500/40' : 'border-border hover:border-primary-500/50'
+            } p-4`}>
               {imagePreview ? (
-                <div className="space-y-3">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="w-full h-64 object-contain rounded-lg bg-surface"
-                  />
-                  <p className="text-xs text-center text-muted font-mono">
-                    {selectedImage?.name}
-                  </p>
-                </div>
+                <img
+                  src={imagePreview}
+                  alt="Uploaded helicopter"
+                  className="w-full h-64 object-contain rounded-lg bg-surface"
+                />
               ) : (
-                <div className="flex flex-col items-center justify-center space-y-3 text-center">
+                <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
                   <ImageIcon className="w-12 h-12 text-muted" />
-                  <div>
-                    <p className="text-sm font-mono text-foreground font-bold">
-                      Click to upload or drag & drop
-                    </p>
-                    <p className="text-xs text-muted font-mono mt-1">
-                      JPG, PNG, BMP (max 10MB)
-                    </p>
-                  </div>
+                  <p className="text-sm font-mono text-foreground font-bold">
+                    Click or drag & drop
+                  </p>
+                  <p className="text-xs text-muted font-mono">JPG, PNG, BMP — max 15MB</p>
                 </div>
               )}
             </div>
             <input
+              ref={inputRef}
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
@@ -176,170 +153,175 @@ export default function ImageAnalysis() {
           </label>
 
           {selectedImage && (
-            <button
-              onClick={analyzeImage}
-              disabled={analyzing}
-              className="w-full btn-primary flex items-center justify-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              {analyzing ? 'Analyzing Image...' : 'Analyze for Defects'}
-            </button>
+            <p className="text-xs text-muted font-mono truncate">
+              📎 {selectedImage.name} ({(selectedImage.size / 1024).toFixed(0)} KB)
+            </p>
           )}
 
           {error && (
-            <div className="p-3 rounded-lg bg-error-light/10 dark:bg-error-dark/10 border border-error-light/20 dark:border-error-dark/20 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-error-light dark:text-error-dark flex-shrink-0 mt-0.5" />
-              <p className="text-xs font-mono text-error-light dark:text-error-dark">{error}</p>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs font-mono text-red-400">{error}</p>
             </div>
           )}
+
+          <button
+            onClick={analyzeImage}
+            disabled={!selectedImage || analyzing}
+            className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <Eye className="w-4 h-4" />
+            {analyzing ? 'Analyzing...' : 'Analyze Helicopter'}
+          </button>
+
+          {/* Tips */}
+          <div className="p-3 rounded-lg bg-surface-variant border border-border text-xs font-mono text-muted space-y-1">
+            <p className="font-semibold text-foreground mb-1">Tips for best results:</p>
+            <p>• Use clear, well-lit helicopter images</p>
+            <p>• Full side or top-down view works best</p>
+            <p>• Damaged images: show visible cracks, rust, or deformation</p>
+          </div>
         </div>
 
-        {/* Results Section */}
+        {/* Results Panel */}
         <div className="card-premium p-6 space-y-4">
-          <h3 className="text-base font-bold font-mono text-foreground flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-primary-500" />
-            Analysis Results
+          <h3 className="text-sm font-bold font-mono text-foreground flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary-500" /> Analysis Results
           </h3>
 
           {!results && !analyzing && (
-            <EmptyState 
-              title="No Analysis Yet"
-              message="Upload a helicopter component image to detect visual anomalies, cracks, corrosion, or wear patterns."
-              type="info"
-              icon={Camera}
-            />
+            <div className="flex flex-col items-center justify-center h-64 text-center gap-3">
+              <Camera className="w-12 h-12 text-muted/40" />
+              <p className="text-sm font-mono text-muted">Upload and analyze an image to see results here.</p>
+            </div>
           )}
 
           {analyzing && (
-            <EmptyState 
-              title="Processing Image"
-              message="Running local vision model inference..."
-              loading={true}
-              type="info"
-            />
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <RefreshCw className="w-8 h-8 text-primary-500 animate-spin" />
+              <p className="text-sm font-mono text-muted">Running visual inspection...</p>
+            </div>
           )}
 
           {results && (
             <div className="space-y-4">
-              {/* Overall Status */}
-              <div className="p-4 rounded-lg bg-surface-variant border border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-mono text-foreground">Component Health</span>
-                  {results.defects_detected ? (
-                    <span className="status-error text-xs px-2 py-0.5 rounded font-mono">Defects Found</span>
-                  ) : (
-                    <span className="status-success text-xs px-2 py-0.5 rounded font-mono">Healthy</span>
-                  )}
+              {/* Overall Status Banner */}
+              <div className={`p-4 rounded-xl border flex items-center gap-3 ${
+                isHealthy
+                  ? 'bg-green-500/10 border-green-500/30'
+                  : results.overall_status === 'Critical'
+                    ? 'bg-red-500/10 border-red-500/30'
+                    : 'bg-orange-500/10 border-orange-500/30'
+              }`}>
+                {isHealthy
+                  ? <CheckCircle2 className="w-6 h-6 text-green-400 flex-shrink-0" />
+                  : <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0" />
+                }
+                <div>
+                  <p className={`text-sm font-bold font-mono ${isHealthy ? 'text-green-400' : 'text-red-400'}`}>
+                    {results.overall_status} — Health Score: {results.health_score}%
+                  </p>
+                  <p className="text-xs text-muted font-mono mt-0.5">{results.summary}</p>
                 </div>
-                <p className="text-xs text-muted font-mono">{results.summary || 'Analysis complete'}</p>
               </div>
 
-              {/* Detections List */}
-              {results.detections && results.detections.length > 0 && (
+              {/* Defects Found */}
+              {isDamaged && results.detections && results.detections.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-bold font-mono text-foreground">Detected Issues:</h4>
-                  {results.detections.map((detection, idx) => (
-                    <div key={idx} className="p-3 rounded-lg bg-surface-variant/50 border border-border">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-bold text-foreground font-mono">
-                              {detection.type || 'Defect'}
-                            </span>
-                            <span className={`text-xs px-2 py-0.5 rounded font-mono ${
-                              detection.severity === 'high' ? 'bg-error-light/10 dark:bg-error-dark/10 text-error-light dark:text-error-dark' :
-                              detection.severity === 'medium' ? 'bg-warning-light/10 dark:bg-warning-dark/10 text-warning-light dark:text-warning-dark' :
-                              'bg-info-light/10 dark:bg-info-dark/10 text-info-light dark:text-info-dark'
-                            }`}>
-                              {detection.severity || 'medium'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted font-mono">
-                            Confidence: {(detection.confidence * 100).toFixed(1)}%
-                          </p>
-                          {detection.location && (
-                            <p className="text-xs text-muted font-mono mt-1">
-                              Location: {detection.location}
-                            </p>
-                          )}
-                        </div>
+                  <h4 className="text-xs font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> Defects Detected
+                  </h4>
+                  {results.detections.map((d, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-surface-variant border border-border space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold font-mono text-foreground">{d.type}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold ${SEVERITY_STYLES[d.severity] || SEVERITY_STYLES.low}`}>
+                          {(d.severity || 'low').toUpperCase()}
+                        </span>
                       </div>
+                      <p className="text-xs text-muted font-mono">📍 {d.location}</p>
+                      <p className="text-xs text-muted font-mono">Confidence: {(d.confidence * 100).toFixed(0)}%</p>
+                      <p className="text-xs font-mono text-primary-500 mt-1">→ {d.recommendation}</p>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Model Info */}
-              <div className="p-3 rounded-lg bg-info-light/10 dark:bg-info-dark/10 border border-info-light/20 dark:border-info-dark/20">
-                <p className="text-xs font-mono text-info-light dark:text-info-dark">
-                  <strong>Model:</strong> {results.model_used || 'YOLOv8-helicopter-defects'} • 
-                  <strong> Processing Time:</strong> {results.processing_time || '~1.2s'}
-                </p>
-              </div>
+              {/* Health status for healthy helicopter */}
+              {isHealthy && (
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-xs font-mono text-green-400">
+                  <Shield className="w-4 h-4 inline mr-1.5" />
+                  All systems nominal. No defects detected. Helicopter is airworthy based on visual inspection.
+                </div>
+              )}
+
+              {/* Detector Scores breakdown */}
+              {results.detector_scores && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-mono text-muted font-semibold uppercase tracking-wider">Detector Signals</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {Object.entries(results.detector_scores).map(([key, score]) => {
+                      const pct = Math.round(score * 100);
+                      const label = {
+                        rust: 'Rust/Corrosion',
+                        dark_stains: 'Dark Stains',
+                        texture: 'Surface Texture',
+                        color_anomaly: 'Color Anomaly',
+                        edges: 'Edge Cracks',
+                        patchiness: 'Patchiness',
+                      }[key] || key;
+                      const color = pct > 30 ? 'bg-red-500' : pct > 15 ? 'bg-orange-400' : 'bg-green-500';
+                      return (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-muted w-28 shrink-0">{label}</span>
+                          <div className="flex-1 h-1.5 rounded-full bg-surface overflow-hidden">
+                            <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct * 3, 100)}%` }} />
+                          </div>
+                          <span className="text-[10px] font-mono text-muted w-6 text-right">{pct}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Processing info */}
+              <p className="text-[10px] font-mono text-muted">
+                {results.model_used} · {results.processing_time}
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Vision AI Architecture Documentation */}
-      <div className="card-premium p-6 space-y-4">
-        <h3 className="text-base font-bold font-mono text-foreground flex items-center gap-2">
-          <FileImage className="w-5 h-5 text-primary-500" />
-          Local Vision AI Architecture
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-lg bg-surface-variant/50 border border-border space-y-2">
-            <h4 className="text-sm font-bold font-mono text-foreground">Object Detection Pipeline</h4>
-            <ul className="text-xs text-muted font-mono space-y-1 list-disc list-inside">
-              <li>YOLOv8 for real-time component localization</li>
-              <li>Custom-trained on helicopter maintenance imagery</li>
-              <li>TensorFlow Lite for offline CPU inference</li>
-              <li>Batch processing support for inspection workflows</li>
-            </ul>
-          </div>
-
-          <div className="p-4 rounded-lg bg-surface-variant/50 border border-border space-y-2">
-            <h4 className="text-sm font-bold font-mono text-foreground">Classification Models</h4>
-            <ul className="text-xs text-muted font-mono space-y-1 list-disc list-inside">
-              <li>ResNet50 for defect type classification</li>
-              <li>EfficientNet-B0 for anomaly severity scoring</li>
-              <li>Pre-trained on ImageNet + fine-tuned on aviation data</li>
-              <li>Multi-class output: Crack, Corrosion, Wear, FOD</li>
-            </ul>
-          </div>
-
-          <div className="p-4 rounded-lg bg-surface-variant/50 border border-border space-y-2">
-            <h4 className="text-sm font-bold font-mono text-foreground">Supported Detection Classes</h4>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {['Surface Crack', 'Corrosion', 'Wear Pattern', 'FOD Damage', 'Paint Defect', 'Oil Leak', 'Loose Hardware'].map(cls => (
-                <span key={cls} className="px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-500 text-[10px] font-mono">
-                  {cls}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-lg bg-surface-variant/50 border border-border space-y-2">
-            <h4 className="text-sm font-bold font-mono text-foreground">Processing Specifications</h4>
-            <ul className="text-xs text-muted font-mono space-y-1 list-disc list-inside">
-              <li>Input resolution: 640x640px (auto-resize)</li>
-              <li>Inference time: ~1-3 seconds per image</li>
-              <li>Hardware: CPU-optimized (no GPU required)</li>
-              <li>Batch mode: Up to 50 images/batch</li>
-            </ul>
+      {/* Part-by-Part Assessment — shown after analysis */}
+      {results && results.part_assessments && (
+        <div className="card-premium p-6 space-y-4">
+          <h3 className="text-sm font-bold font-mono text-foreground flex items-center gap-2">
+            <Wrench className="w-4 h-4 text-primary-500" /> Part-by-Part Assessment
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {results.part_assessments.map((part, i) => (
+              <div key={i} className="p-3 rounded-lg bg-surface-variant border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-foreground font-semibold leading-tight">{part.part}</span>
+                  <span className={`text-[10px] font-mono font-bold ${STATUS_STYLES[part.status] || 'text-muted'}`}>
+                    {part.status}
+                  </span>
+                </div>
+                {/* Health bar */}
+                <div className="w-full h-1.5 rounded-full bg-surface overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${STATUS_BAR[part.status] || 'bg-muted'}`}
+                    style={{ width: `${part.health_score}%` }}
+                  />
+                </div>
+                <p className="text-[10px] font-mono text-muted">{part.health_score}% health</p>
+              </div>
+            ))}
           </div>
         </div>
-
-        <div className="p-4 rounded-lg bg-warning-light/10 dark:bg-warning-dark/10 border border-warning-light/20 dark:border-warning-dark/20">
-          <p className="text-xs font-mono text-warning-light dark:text-warning-dark leading-relaxed">
-            <strong>⚠️ Development Note:</strong> Vision AI backend endpoint is currently a placeholder. 
-            To enable full functionality, deploy a local vision model server (e.g., FastAPI + YOLOv8 + OpenCV) 
-            at <code className="px-1 py-0.5 bg-surface rounded">http://localhost:8000/api/vision/analyze</code>.
-            Reference implementation available in backend documentation.
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

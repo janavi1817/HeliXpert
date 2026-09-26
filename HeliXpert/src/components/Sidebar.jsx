@@ -9,12 +9,9 @@ import {
   AlertTriangle, 
   Wrench, 
   Camera, 
-  BookOpen, 
   Settings,
   ShieldCheck,
   Radio,
-  FileText,
-  Box,
   Sun,
   Moon
 } from 'lucide-react';
@@ -25,14 +22,11 @@ export default function Sidebar({ activeTab, setActiveTab, selectedHelicopterId 
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'ai-analyst', label: 'AI Analyst', icon: Bot, badge: 'Real Data' },
     { id: 'helicopters', label: 'Helicopters', icon: Plane },
-    { id: '3d-model', label: '3D Helicopter', icon: Box, badge: '360°' },
-    { id: 'details', label: 'Helicopter Details', icon: FileText, disabled: false },
     { id: 'components', label: 'Components', icon: Cpu },
     { id: 'parameters', label: 'Telemetry & Params', icon: Activity },
     { id: 'faults', label: 'Faults & Alerts', icon: AlertTriangle, badgeColor: 'status-error' },
     { id: 'maintenance', label: 'Maintenance Log', icon: Wrench },
     { id: 'image-analysis', label: 'Image Vision AI', icon: Camera, badge: 'Vision' },
-    { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'datasets', label: 'Dataset Management', icon: ShieldCheck },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

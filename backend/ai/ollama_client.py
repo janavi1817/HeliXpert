@@ -1,150 +1,109 @@
 """
 Ollama HTTP client for HeliXpert AI integration.
-Provides centralized Ollama API communication with error handling and timeout management.
+Auto-detects installed model — no hardcoded model name.
 """
-
 import requests
 import logging
 from typing import Optional, List
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    """
-    Client for interacting with Ollama API.
-    
-    Handles availability checks, model listing, and prompt generation
-    with proper error handling and timeouts.
-    """
-    
     def __init__(self, base_url: str = "http://localhost:11434"):
-        """
-        Initialize Ollama client.
-        
-        Args:
-            base_url: Ollama API base URL (default: http://localhost:11434)
-        """
         self.base_url = base_url
-        self.model_name = "llama3.2:latest"  # Default model, can be configured
-        logger.info(f"OllamaClient initialized with base_url={base_url}, model={self.model_name}")
-    
+        # Auto-detect installed model at startup; fall back to llama3:8b
+        self.model_name = self._detect_model()
+        logger.info(f"OllamaClient ready: base_url={base_url}, model={self.model_name}")
+
+    def _detect_model(self) -> str:
+        """
+        Query Ollama for installed models and pick the best available one.
+        Priority: llama3.x > llama > any model > default fallback.
+        Runs at init time; if Ollama isn't running yet, returns the fallback safely.
+        """
+        try:
+            r = requests.get(f"{self.base_url}/api/tags", timeout=2)
+            if r.status_code == 200:
+                names = [m.get("name", "") for m in r.json().get("models", [])]
+                if names:
+                    # Prefer llama3 variants
+                    for n in names:
+                        if "llama3" in n.lower():
+                            logger.info(f"Auto-selected model: {n}")
+                            return n
+                    # Then any llama
+                    for n in names:
+                        if "llama" in n.lower():
+                            logger.info(f"Auto-selected model: {n}")
+                            return n
+                    # First available
+                    logger.info(f"Auto-selected model: {names[0]}")
+                    return names[0]
+        except Exception:
+            pass
+        logger.info("Ollama not reachable at init; using default model name 'llama3:8b'")
+        return "llama3:8b"
+
+    def refresh_model(self):
+        """Re-detect the model (call this if models change at runtime)."""
+        self.model_name = self._detect_model()
+        return self.model_name
+
     def is_available(self) -> bool:
-        """
-        Check if Ollama service is running and accessible.
-        
-        Makes a GET request to /api/tags with 2-second timeout.
-        
-        Returns:
-            bool: True if Ollama is available, False otherwise
-            
-        Requirements: REQ-1.1
-        """
+        """Return True if Ollama is reachable."""
         try:
-            logger.debug(f"Checking Ollama availability at {self.base_url}/api/tags")
-            response = requests.get(
-                f"{self.base_url}/api/tags",
-                timeout=2
-            )
-            available = response.status_code == 200
-            logger.info(f"Ollama availability check: {available}")
-            return available
-        except requests.exceptions.Timeout:
-            logger.warning("Ollama availability check timed out after 2 seconds")
+            r = requests.get(f"{self.base_url}/api/tags", timeout=2)
+            return r.status_code == 200
+        except Exception:
             return False
-        except requests.exceptions.ConnectionError:
-            logger.warning(f"Ollama connection error: service not reachable at {self.base_url}")
-            return False
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ollama availability check failed: {e}")
-            return False
-    
+
     def get_available_models(self) -> List[str]:
-        """
-        Get list of available Ollama models.
-        
-        Parses the response from GET /api/tags and extracts model names.
-        
-        Returns:
-            List[str]: List of model names, empty list on error
-            
-        Requirements: REQ-1.2
-        """
+        """Return list of installed model names."""
         try:
-            logger.debug(f"Fetching available models from {self.base_url}/api/tags")
-            response = requests.get(
-                f"{self.base_url}/api/tags",
-                timeout=2
-            )
-            response.raise_for_status()
-            
-            data = response.json()
-            models = [model["name"] for model in data.get("models", [])]
-            logger.info(f"Available models: {models}")
-            return models
-        except requests.exceptions.Timeout:
-            logger.warning("Failed to fetch models: request timed out after 2 seconds")
+            r = requests.get(f"{self.base_url}/api/tags", timeout=2)
+            r.raise_for_status()
+            return [m["name"] for m in r.json().get("models", [])]
+        except Exception:
             return []
-        except requests.exceptions.ConnectionError:
-            logger.warning(f"Failed to fetch models: connection error to {self.base_url}")
-            return []
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch available models: {e}")
-            return []
-        except (KeyError, ValueError) as e:
-            logger.error(f"Failed to parse models response: {e}")
-            return []
-    
-    def call_ollama(
-        self,
-        prompt: str,
-        model: Optional[str] = None,
-        timeout: int = 30
-    ) -> str:
+
+    def call_ollama(self, prompt: str, model: Optional[str] = None, timeout: int = 45) -> str:
         """
-        Send a prompt to Ollama and get the response.
-        
-        Makes a POST request to /api/generate with stream=false.
-        
-        Args:
-            prompt: The prompt text to send to Ollama
-            model: Model name to use (default: self.model_name)
-            timeout: Request timeout in seconds (default: 30)
-            
-        Returns:
-            str: Generated response text from Ollama
-            
-        Raises:
-            requests.exceptions.Timeout: If request exceeds timeout
-            requests.exceptions.ConnectionError: If cannot connect to Ollama
-            requests.exceptions.RequestException: For other request errors
-            
-        Requirements: REQ-1.6
+        Send prompt to Ollama, return response text.
+        Raises on connection/timeout errors so callers can handle them.
+        Re-detects model on 404 (model not found) and retries once.
         """
-        model = model or self.model_name
-        
-        logger.debug(f"Calling Ollama with model={model}, prompt_length={len(prompt)}, timeout={timeout}s")
-        
+        use_model = model or self.model_name
+        logger.debug(f"Ollama call: model={use_model}, prompt_len={len(prompt)}, timeout={timeout}s")
+
         try:
             response = requests.post(
                 f"{self.base_url}/api/generate",
-                json={
-                    "model": model,
-                    "prompt": prompt,
-                    "stream": False  # REQ-1.6: Always use stream=false
-                },
-                timeout=timeout
+                json={"model": use_model, "prompt": prompt, "stream": False},
+                timeout=timeout,
             )
+
+            # If model not found, auto-detect and retry once
+            if response.status_code == 404:
+                logger.warning(f"Model '{use_model}' not found (404). Re-detecting...")
+                new_model = self.refresh_model()
+                if new_model != use_model:
+                    response = requests.post(
+                        f"{self.base_url}/api/generate",
+                        json={"model": new_model, "prompt": prompt, "stream": False},
+                        timeout=timeout,
+                    )
+                    response.raise_for_status()
+                else:
+                    raise RuntimeError(f"Model '{use_model}' not installed in Ollama. Run: ollama pull {use_model}")
+
             response.raise_for_status()
-            
-            data = response.json()
-            result = data.get("response", "")
-            logger.info(f"Ollama response received: {len(result)} characters")
+            result = response.json().get("response", "")
+            logger.info(f"Ollama response: {len(result)} chars")
             return result
-            
+
         except requests.exceptions.Timeout:
-            logger.error(f"Ollama request timed out after {timeout} seconds")
+            logger.error(f"Ollama timed out after {timeout}s")
             raise
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Ollama connection error: {e}")

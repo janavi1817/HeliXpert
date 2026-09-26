@@ -72,15 +72,6 @@ export default function DatasetManagement() {
       description: 'Real helicopter turboshaft engine health monitoring with fault detection labels',
       source: 'PHM North America 2024',
       helicopter_specific: true
-    },
-    {
-      key: 'cmapss',
-      name: 'NASA C-MAPSS Turbofan Degradation',
-      type: 'Aerospace Engine Prognostics',
-      description: 'Turbofan engine degradation simulation for prognostics research',
-      source: 'NASA Ames Research Center',
-      helicopter_specific: false,
-      note: 'NOT helicopter data — aerospace turbofan prognostics reference'
     }
   ];
 
@@ -262,7 +253,7 @@ export default function DatasetManagement() {
             <h4 className="font-mono font-bold text-sm text-foreground mb-1">Data Storage Locations</h4>
             <div className="text-xs text-muted space-y-1 font-mono">
               <p><strong>Database:</strong> data/database/helixpert.db</p>
-              <p><strong>Raw Data:</strong> data/raw/ (helicopters/, components/, maintenance/, phm_helicopter/, cmapss/)</p>
+              <p><strong>Raw Data:</strong> data/raw/ (helicopters/, components/, maintenance/, phm_helicopter/)</p>
               <p><strong>Metadata:</strong> data/metadata/dataset_registry.json</p>
               <p><strong>All data is stored locally and never transmitted.</strong></p>
             </div>

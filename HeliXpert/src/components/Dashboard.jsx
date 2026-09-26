@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../services/dataService';
 import EmptyState from './EmptyState';
-import Helicopter3DWidget from './Helicopter3DWidget';
 import { 
   Plane, 
-  CheckCircle2, 
   AlertTriangle, 
   Activity, 
   Bot, 
   ArrowRight, 
   Wrench,
-  Database
+  Database,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -354,43 +353,6 @@ export default function Dashboard({ setActiveTab, onSelectQuickPrompt, onSelectH
         </div>
       </div>
 
-      {/* 3D Model Widget */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Helicopter3DWidget 
-          onOpenFullView={() => setActiveTab('3d-model')}
-          className="h-64"
-        />
-        
-        {/* System Status Panel */}
-        <div className="card-premium p-5 space-y-4">
-          <h3 className="text-base font-bold font-mono text-foreground flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-success-light dark:text-success-dark" />
-            System Status
-          </h3>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant/50 border border-border">
-              <span className="text-sm text-foreground font-mono">Database</span>
-              <span className="status-success text-xs px-2 py-0.5 rounded font-mono font-semibold">Ready</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant/50 border border-border">
-              <span className="text-sm text-foreground font-mono">Local AI Engine</span>
-              <span className="status-success text-xs px-2 py-0.5 rounded font-mono font-semibold">Active</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant/50 border border-border">
-              <span className="text-sm text-foreground font-mono">Datasets Loaded</span>
-              <span className="text-sm font-bold gold-accent font-mono">{stats.datasets_loaded || 0}/5</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-variant/50 border border-border">
-              <span className="text-sm text-foreground font-mono">Offline Mode</span>
-              <span className="status-success text-xs px-2 py-0.5 rounded font-mono font-semibold">100%</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
